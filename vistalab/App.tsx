@@ -812,14 +812,18 @@ export default function App() {
               >
                 {t.contactUs}
               </button>
-              <div className="flex items-center justify-around pt-2 text-xs font-semibold text-slate-600">
-                <a href={`tel:${settings.phone1}`} className="flex items-center space-x-1 text-green-900">
+              <div className="grid grid-cols-3 items-center gap-1 pt-2 text-[11px] font-semibold text-slate-600">
+                <a href={`tel:${settings.phone1}`} className="flex min-h-10 items-center justify-center gap-1 text-green-900">
                   <Phone className="w-4 h-4 text-green-500" />
                   <span>{tx('Call Us', 'ហៅទូរសព្ទមកយើង')}</span>
                 </a>
-                <a href={`https://t.me/${settings.telegram.replace('@','')}`} target="_blank" rel="noreferrer" className="flex items-center space-x-1 text-green-600">
+                <a href={`https://t.me/${settings.telegram.replace('@','')}`} target="_blank" rel="noreferrer" className="flex min-h-10 items-center justify-center gap-1 text-green-700">
                   <MessageCircle className="w-4 h-4" />
                   <span>Telegram</span>
+                </a>
+                <a href={settings.facebook} target="_blank" rel="noreferrer" aria-label="Visit VistaLab on Facebook" className="flex min-h-10 items-center justify-center gap-1 text-slate-700">
+                  <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-[11px] font-black leading-none text-white">f</span>
+                  <span>Facebook</span>
                 </a>
               </div>
             </div>
