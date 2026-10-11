@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-labelledby="title">
+  <title id="title">VistaLab Cambodia</title>
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071d4b" />
+      <stop offset="1" stop-color="#020b20" />
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1764df" />
+      <stop offset="1" stop-color="#07348e" />
+    </linearGradient>
+  </defs>
+  <path fill="url(#navy)" d="M34 56h173c-35 13-31 38-12 70l122 206 108-196c24-44 42-69 93-80l-77 146-102 181h-78L107 150C82 108 65 75 34 56z" />
+  <path fill="url(#navy)" d="M236 176c47-43 79-91 126-118 35-20 70-23 117-18-55 14-84 56-120 91-39 38-72 55-123 45z" />
+  <path fill="url(#blue)" d="M382 8c-15 40-46 69-49 104-3 31 17 55 43 57 27 2 50-21 53-51 4-40-20-68-47-110z" />
+  <path fill="none" stroke="#fff" stroke-linecap="round" stroke-width="8" d="M405 74c-1 14-6 25-15 34" />
+  <text x="475" y="245" fill="url(#navy)" font-family="Georgia, 'Times New Roman', serif" font-size="190" font-weight="700" letter-spacing="-8">VistaLab</text>
+  <text x="775" y="365" fill="url(#navy)" font-family="Georgia, 'Times New Roman', serif" font-size="112" font-weight="700" letter-spacing="-3">Cambodia</text>
+</svg>

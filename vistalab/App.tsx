@@ -438,8 +438,7 @@ export default function App() {
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
         <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70 sm:p-8">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-800"><Settings className="h-6 w-6" aria-hidden="true" /></div>
-            <div><p className="text-xs font-bold uppercase tracking-wider text-green-700">VistaLab Cambodia</p><h1 className="text-2xl font-black text-slate-900">Admin sign in</h1></div>
+            <div><img src={`${import.meta.env.BASE_URL}images/vistalab-logo.svg`} alt="VistaLab Cambodia" className="mb-1 h-12 w-36 object-contain object-left" /><h1 className="text-2xl font-black text-slate-900">Admin sign in</h1></div>
           </div>
           {!adminAuthReady ? (
             <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Checking admin session…</p>
@@ -526,22 +525,10 @@ export default function App() {
         {/* Main Navbar */}
         <div className="w-full min-w-0 max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
           {/* Logo */}
-          <div 
-            onClick={() => setCurrentView('home')} 
-            className="cursor-pointer flex min-w-0 flex-1 items-center space-x-3 group"
-          >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#F47B53] text-white flex items-center justify-center font-black text-xl shadow-md border border-white/60 group-hover:scale-105 transition-transform">
-              VL
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center truncate text-base font-extrabold tracking-tight text-[#202124] sm:text-xl">
-                VISTALAB <img src="./cambodia-flag.svg" alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="ml-1.5 inline-block h-[18px] w-[28px] rounded-[2px] align-[-3px] object-cover shadow-sm ring-1 ring-black/10" />
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-500 font-medium tracking-wide max-[360px]:hidden">
-                {tx('FMCG IMPORTER & DISTRIBUTOR', 'អ្នកនាំចូល និងចែកចាយផលិតផល FMCG')}
-              </div>
-            </div>
-          </div>
+          <button type="button" onClick={() => setCurrentView('home')} aria-label={tx('VistaLab Cambodia home', 'ទំព័រដើម VistaLab Cambodia')} className="group flex min-w-0 flex-1 items-center gap-2 text-left">
+            <img src={`${import.meta.env.BASE_URL}images/vistalab-logo.svg`} alt="VistaLab Cambodia" className="h-auto w-[min(43vw,190px)] object-contain sm:w-[210px]" />
+            <img src={`${import.meta.env.BASE_URL}cambodia-flag.svg`} alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="h-4 w-6 shrink-0 rounded-[2px] object-cover shadow-sm ring-1 ring-black/10 transition-transform group-hover:scale-105" />
+          </button>
 
           {/* Desktop Links */}
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 text-sm font-semibold text-slate-700">
@@ -2035,10 +2022,7 @@ export default function App() {
       <footer className="site-footer-friendly bg-green-50 text-slate-700 text-xs border-t border-green-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-8">
           <div className="space-y-3">
-            <div className="flex items-center space-x-2 text-white font-extrabold text-lg">
-              <div className="w-8 h-8 rounded-lg bg-green-500 text-slate-950 flex items-center justify-center font-black text-sm">VL</div>
-              <span>VISTALAB CAMBODIA</span>
-            </div>
+            <img src={`${import.meta.env.BASE_URL}images/vistalab-logo.svg`} alt="VistaLab Cambodia" className="h-auto w-44 object-contain object-left" />
             <p className="text-slate-400 text-xs leading-relaxed">{t.footerDesc}</p>
           </div>
 
