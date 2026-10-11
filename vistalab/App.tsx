@@ -821,8 +821,8 @@ export default function App() {
                   <MessageCircle className="w-4 h-4" />
                   <span>Telegram</span>
                 </a>
-                <a href={settings.facebook} target="_blank" rel="noreferrer" aria-label="Visit VistaLab on Facebook" className="flex min-h-10 items-center justify-center gap-1 text-slate-700">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0"><rect x="1" y="1" width="22" height="22" rx="6" fill="#1877F2" /><path d="M14.2 21v-8h2.7l.4-3.1h-3.1V8c0-.9.3-1.5 1.6-1.5h1.7V3.7c-.3 0-1.4-.2-2.7-.2-2.7 0-4.5 1.6-4.5 4.6v1.8h-3v3.1h3v8h3.9Z" fill="white" /></svg>
+                <a href={settings.facebook} target="_blank" rel="noreferrer" aria-label="Visit VistaLab on Facebook" className="flex min-h-10 items-center justify-center gap-1 text-green-700">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0"><path d="M14.2 21v-8h2.7l.4-3.1h-3.1V8c0-.9.3-1.5 1.6-1.5h1.7V3.7c-.3 0-1.4-.2-2.7-.2-2.7 0-4.5 1.6-4.5 4.6v1.8h-3v3.1h3v8h3.9Z" fill="#267A3B" /></svg>
                   <span>Facebook</span>
                 </a>
               </div>
