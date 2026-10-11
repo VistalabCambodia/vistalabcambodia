@@ -247,6 +247,7 @@ export default function App() {
   const [news, setNews] = useState<NewsArticle[]>(() => loadStoredArray('vistalab.news', initialNews));
   const [inquiries, setInquiries] = useState<Inquiry[]>(() => loadStoredArray('vistalab.inquiries', initialInquiries));
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [brandSaving, setBrandSaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [newProductImage, setNewProductImage] = useState('');
@@ -1794,18 +1795,43 @@ export default function App() {
 
               {editingBrand && (
                 <form
-                  onSubmit={(event) => {
+                  onSubmit={async (event) => {
                     event.preventDefault();
+                    if (brandSaving) return;
                     const savedBrand = { ...editingBrand, logoText: editingBrand.logoText || editingBrand.name.toUpperCase() };
                     const previousBrand = brands.find((brand) => brand.id === savedBrand.id);
+                    const nextBrands = brands.some((brand) => brand.id === savedBrand.id)
+                      ? brands.map((brand) => brand.id === savedBrand.id ? savedBrand : brand)
+                      : [savedBrand, ...brands];
                     if (previousBrand && previousBrand.name !== savedBrand.name) {
                       setProducts((current) => current.map((product) => product.brand === previousBrand.name ? { ...product, brand: savedBrand.name } : product));
                     }
-                    setBrands((current) => current.some((brand) => brand.id === savedBrand.id)
-                      ? current.map((brand) => brand.id === savedBrand.id ? savedBrand : brand)
-                      : [savedBrand, ...current]);
-                    setEditingBrand(null);
-                  triggerToast(tx('Brand saved.', 'បានរក្សាទុកម៉ាកផលិតផល។'));
+                    if (!supabaseClient) {
+                      setBrands(nextBrands);
+                      setEditingBrand(null);
+                      triggerToast('Brand saved in this browser.');
+                      return;
+                    }
+                    setBrandSaving(true);
+                    setSiteContentSyncing(true);
+                    setSiteContentError('');
+                    try {
+                      const saved = await saveSiteContent(nextBrands, news, settings);
+                      siteContentBaseline.current = JSON.stringify(saved);
+                      setBrands(saved.brands);
+                      setNews(saved.news);
+                      setSettings(saved.settings);
+                      setEditingBrand(null);
+                      setSiteContentError('');
+                      triggerToast('Brand and logo saved to Supabase.');
+                    } catch (error) {
+                      const message = error instanceof Error ? error.message : 'Could not save this brand to Supabase.';
+                      setSiteContentError(message);
+                      triggerToast('Brand save failed: ' + message);
+                    } finally {
+                      setBrandSaving(false);
+                      setSiteContentSyncing(false);
+                    }
                   }}
                   className="grid grid-cols-1 gap-3 rounded-2xl border border-green-200 bg-green-50/50 p-4 sm:grid-cols-2"
                 >
@@ -1819,7 +1845,7 @@ export default function App() {
                   <ImageUpload label={tx('Brand picture or logo', 'រូបភាពម៉ាក ឬរូបសញ្ញា')} lang={lang} image={editingBrand.image} onChange={(image) => setEditingBrand({ ...editingBrand, image })} crop />
                   <ImageUpload label={tx('Country flag picture (optional)', 'រូបទង់ជាតិ (ស្រេចចិត្ត)')} lang={lang} image={editingBrand.flagImage} onChange={(flagImage) => setEditingBrand({ ...editingBrand, flagImage })} />
                   <div className="flex gap-2 sm:col-span-2">
-                    <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Brand', 'រក្សាទុកម៉ាក')}</button>
+                    <button type="submit" disabled={brandSaving} className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 disabled:cursor-wait disabled:opacity-60">{brandSaving ? 'Saving image...' : 'Save Brand'}</button>
                     <button type="button" onClick={() => setEditingBrand(null)} className="rounded-xl bg-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">{tx('Cancel', 'បោះបង់')}</button>
                   </div>
                 </form>

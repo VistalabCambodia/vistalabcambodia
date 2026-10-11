@@ -95,7 +95,10 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
       onChange(dataUrl);
       closeCrop();
     } catch (cropError) {
-      setError(cropError instanceof Error ? cropError.message : 'Image processing failed.');
+      const message = cropError instanceof Error ? cropError.message : 'Image processing failed.';
+      setError(message.includes('tainted') || (cropError instanceof DOMException && cropError.name === 'SecurityError')
+        ? cropText('This hosted logo cannot be cropped in the browser. Choose the original logo file above, crop it, then save the brand.', 'រូបសញ្ញាដែលបានផ្ទុកនេះមិនអាចកាត់នៅក្នុងកម្មវិធីរុករកបានទេ។ សូមជ្រើសរើសឯកសាររូបសញ្ញាដើមខាងលើ កាត់រូបភាព រួចរក្សាទុកម៉ាក។')
+        : message);
     } finally {
       setProcessing(false);
     }
