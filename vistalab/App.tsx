@@ -27,6 +27,7 @@ import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } fr
 import { isAdminUser, supabaseClient } from './utils/supabase';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
 import { mapProductRow, saveProductToSupabase } from './utils/productRepository';
+import { mapSiteContentRow, saveSiteContent } from './utils/siteContentRepository';
 
 const windows1252SpecialCharacters = [
   '\u20ac', '\u0081', '\u201a', '\u0192', '\u201e', '\u2026', '\u2020', '\u2021',
@@ -286,6 +287,70 @@ export default function App() {
       };
     } catch { return defaults; }
   });
+
+  const [siteContentLoaded, setSiteContentLoaded] = useState(!supabaseClient);
+  const [siteContentReady, setSiteContentReady] = useState(!supabaseClient);
+  const [siteContentError, setSiteContentError] = useState('');
+  const [siteContentRetry, setSiteContentRetry] = useState(0);
+  const [siteContentSyncing, setSiteContentSyncing] = useState(false);
+  const siteContentBaseline = useRef<string | null>(null);
+  const siteContentSaveQueue = useRef<Promise<void>>(Promise.resolve());
+  const siteContentSnapshot = useRef({ brands, news, settings });
+  siteContentSnapshot.current = { brands, news, settings };
+
+  useEffect(() => {
+    if (!supabaseClient) return;
+    let cancelled = false;
+    setSiteContentLoaded(false);
+    setSiteContentReady(false);
+    setSiteContentError('');
+    void (async () => {
+      const { data, error } = await supabaseClient.from('site_content').select('*').eq('id', 'main').maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setSiteContentError(error.message);
+        setSiteContentLoaded(true);
+        return;
+      }
+      if (data) {
+        const content = mapSiteContentRow(data);
+        siteContentBaseline.current = JSON.stringify(content);
+        setBrands(content.brands);
+        setNews(content.news);
+        setSettings((current) => ({ ...current, ...content.settings }));
+      } else {
+        // The first admin visit imports the current browser's existing editable content.
+        siteContentBaseline.current = null;
+      }
+      setSiteContentReady(true);
+      setSiteContentLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [siteContentRetry]);
+
+  useEffect(() => {
+    if (!supabaseClient || !siteContentLoaded || !siteContentReady || !adminAuthenticated) return;
+    const timer = window.setTimeout(() => {
+      siteContentSaveQueue.current = siteContentSaveQueue.current.then(async () => {
+        const current = siteContentSnapshot.current;
+        if (siteContentBaseline.current === JSON.stringify(current)) return;
+        setSiteContentSyncing(true);
+        try {
+          const saved = await saveSiteContent(current.brands, current.news, current.settings);
+          siteContentBaseline.current = JSON.stringify(saved);
+          setBrands(saved.brands);
+          setNews(saved.news);
+          setSettings(saved.settings);
+          setSiteContentError('');
+        } catch (error) {
+          setSiteContentError(error instanceof Error ? error.message : 'Could not save website content to Supabase.');
+        } finally {
+          setSiteContentSyncing(false);
+        }
+      });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [brands, news, settings, siteContentLoaded, siteContentReady, adminAuthenticated]);
 
   const t = translations[lang];
   const tx = (english: string, khmer: string) => lang === 'KH' ? khmer : english;
@@ -1460,13 +1525,21 @@ export default function App() {
               <div className="flex items-center space-x-2">
                 <button onClick={() => void handleAdminLogout()} className="rounded-xl border border-white/30 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10">Sign out</button>
                 <button
-                  onClick={() => triggerToast(tx('Contact information and site content are saved in this browser.', 'ព័ត៌មានទំនាក់ទំនង និងមាតិកាគេហទំព័រត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះ។'))}
+                  onClick={() => triggerToast(supabaseClient ? tx('Website content syncs to Supabase automatically.', 'មាតិកាគេហទំព័រធ្វើសមកាលកម្មទៅ Supabase ដោយស្វ័យប្រវត្តិ។') : tx('Website content is saved in this browser.', 'មាតិកាគេហទំព័រត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះ។'))}
                   className="bg-green-500 text-slate-950 hover:bg-green-600 px-4 py-2 rounded-xl text-xs font-extrabold shadow"
                 >
                   {tx('Save Settings', 'រក្សាទុកការកំណត់')}
                 </button>
               </div>
             </div>
+
+            {supabaseClient && <div className={`rounded-2xl border p-4 text-sm ${siteContentError ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-green-200 bg-green-50 text-green-950'}`}>
+              {siteContentError ? <>
+                <p className="font-bold">{tx('Shared site images need setup or a connection check.', 'ត្រូវរៀបចំរូបភាពគេហទំព័ររួម ឬពិនិត្យការតភ្ជាប់។')}</p>
+                <p className="mt-1">{tx('Run supabase/site_content_storage_setup.sql in the Supabase SQL Editor, then retry. Details:', 'សូមដំណើរការ supabase/site_content_storage_setup.sql ក្នុង Supabase SQL Editor រួចសាកល្បងម្ដងទៀត។ ព័ត៌មានលម្អិត៖')} {siteContentError}</p>
+                <button type="button" onClick={() => setSiteContentRetry((attempt) => attempt + 1)} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-sm">{tx('Retry connection', 'ព្យាយាមតភ្ជាប់ម្ដងទៀត')}</button>
+              </> : <p>{!siteContentLoaded ? tx('Loading shared website content…', 'កំពុងផ្ទុកមាតិកាគេហទំព័ររួម…') : siteContentSyncing ? tx('Saving website text and images to Supabase…', 'កំពុងរក្សាទុកអត្ថបទ និងរូបភាពគេហទំព័រទៅ Supabase…') : tx('Website images and editable content are connected to Supabase.', 'រូបភាព និងមាតិកាដែលអាចកែប្រែបានបានភ្ជាប់ទៅ Supabase។')}</p>}
+            </div>}
 
             <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
               <nav aria-label="Admin pages" className="h-fit rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-5">

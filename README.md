@@ -53,11 +53,12 @@ vistalab/
   utils/
     storage.ts               Browser storage helper
     productRepository.ts     Product database and image uploads
+    siteContentRepository.ts Shared page content and image uploads
 index.html                   Vite HTML shell
 public/images/               Static image assets
 ```
 
-Brands, news, contact settings, and inquiries still use the current browser's local storage. Product records and product pictures can sync through Supabase so they appear to all visitors.
+When Supabase is configured, products and editable site content can sync between visitors. Inquiries still use the current browser's local storage.
 
 ## Configure admin sign-in
 
@@ -74,7 +75,11 @@ After admin sign-in is configured, run [`supabase/product_catalog_setup.sql`](su
 
 Then open the website, sign in to the admin page, and select **Products**. If the table is empty, the existing product catalog in that browser will be uploaded automatically. After that, new and edited products and their pictures sync through Supabase and appear to visitors on other devices. If the database setup is missing, the Products page shows a setup message and retry button.
 
-The free GitHub Pages hosting continues to serve the website. Supabase stores product data and images; its free plan has usage limits, so check your project usage if the catalog grows substantially. Other CMS content (brands, news, contact settings, and inquiries) still stays in the current browser's local storage.
+## Store other website images and content in Supabase
+
+Run [`supabase/site_content_storage_setup.sql`](supabase/site_content_storage_setup.sql) in the Supabase SQL Editor too. Then open the site and sign in to the admin page. The first admin visit copies existing brands, news, page text, contact details, and uploaded banner/logo/flag/news images from that browser into Supabase. Future edits sync automatically; pictures are stored in the public `site-images` bucket. The admin dashboard shows whether the setup is connected or needs attention.
+
+GitHub Pages continues to host the website. Supabase stores products, editable page content, and uploaded pictures; monitor your project usage as the site grows. Inquiry submissions remain in the current browser's local storage.
 
 ## Admin traffic analytics
 
