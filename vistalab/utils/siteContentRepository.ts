@@ -23,10 +23,12 @@ async function storeImage(image: string | undefined, path: string): Promise<stri
   const blob = await fetch(image).then((response) => response.blob());
   const { error } = await supabaseClient.storage.from('site-images').upload(path, blob, {
     contentType: 'image/webp',
+    cacheControl: '0',
     upsert: true
   });
   if (error) throw new Error(error.message);
-  return supabaseClient.storage.from('site-images').getPublicUrl(path).data.publicUrl;
+  const publicUrl = supabaseClient.storage.from('site-images').getPublicUrl(path).data.publicUrl;
+  return `${publicUrl}?v=${Date.now()}`;
 }
 
 export async function saveSiteContent<Settings extends Record<string, unknown>>(
