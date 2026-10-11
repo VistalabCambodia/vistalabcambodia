@@ -68,3 +68,7 @@ The admin page is hidden from the public navigation. Open it directly at `https:
 4. Redeploy the `Deploy to GitHub Pages` workflow. The login screen will be enabled after deployment.
 
 The CMS currently stores its edits only in the signed-in browser. Supabase protects access to the admin screen; it does not yet sync CMS content between visitors or devices.
+
+## Admin traffic analytics
+
+The admin dashboard can show page visits, unique browser sessions, and product views. To enable shared analytics, run [`supabase/website_analytics_setup.sql`](supabase/website_analytics_setup.sql) once in the Supabase SQL Editor. Then redeploy the site and open **Admin → Traffic analytics**. The tracker records the page or product opened and a random session-only ID; the analytics table does not store names, emails, or IP addresses. Without this SQL setup, the dashboard shows instructions and tracking remains inactive.

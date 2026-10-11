@@ -25,6 +25,7 @@ import { CountryFlag } from './components/CountryFlag';
 import { loadStoredArray } from './utils/storage';
 import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } from './data/translations';
 import { isAdminUser, supabaseClient } from './utils/supabase';
+import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
 
 const windows1252SpecialCharacters = [
   '\u20ac', '\u0081', '\u201a', '\u0192', '\u201e', '\u2026', '\u2020', '\u2021',
@@ -71,11 +72,27 @@ export default function App() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState('');
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
+  const [activeAdminSection, setActiveAdminSection] = useState('overview');
+  const [websiteEvents, setWebsiteEvents] = useState<WebsiteEvent[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHubId, setSelectedHubId] = useState(distributionHubs[0].id);
   const selectedHub = distributionHubs.find((hub) => hub.id === selectedHubId) ?? distributionHubs[0];
+  const analyticsWeekEvents = websiteEvents.filter((event) => Date.now() - Date.parse(event.created_at) <= 7 * 24 * 60 * 60 * 1000);
+  const popularProducts = Object.values(websiteEvents
+    .filter((event) => event.event_type === 'product_view')
+    .reduce<Record<string, { name: string; views: number }>>((counts, event) => {
+      const id = event.product_id ?? event.product_name ?? 'unknown';
+      const product = counts[id] ?? { name: event.product_name ?? id, views: 0 };
+      product.views += 1;
+      counts[id] = product;
+      return counts;
+    }, {}))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 5);
 
   useEffect(() => {
     if (!supabaseClient) {
@@ -209,6 +226,17 @@ export default function App() {
 
   const t = translations[lang];
   const tx = (english: string, khmer: string) => lang === 'KH' ? khmer : english;
+  const analyticsPageName = (page: string) => ({
+    home: tx('Home', 'ទំព័រដើម'),
+    about: tx('About', 'អំពីយើង'),
+    brands: tx('Brands', 'ម៉ាកផលិតផល'),
+    products: tx('Products', 'ផលិតផល'),
+    distribution: tx('Distribution', 'ការចែកចាយ'),
+    partner: tx('Partner', 'ដៃគូ'),
+    seller: tx('Seller', 'អ្នកលក់'),
+    news: tx('News', 'ព័ត៌មាន'),
+    contact: tx('Contact', 'ទំនាក់ទំនង')
+  }[page] ?? page);
   const categoryLabels: Record<typeof productCategories[number], string> = {
     All: t.allCategories,
     'Personal Care': t.catPersonal,
@@ -285,6 +313,35 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setMobileMenuOpen(false);
   }, [currentView]);
+
+  useEffect(() => {
+    if (currentView === 'admin') return;
+    void trackWebsiteEvent({ event_type: 'page_view', page_path: currentView });
+  }, [currentView]);
+
+  useEffect(() => {
+    if (currentView === 'admin' || !selectedProduct) return;
+    void trackWebsiteEvent({
+      event_type: 'product_view',
+      page_path: currentView,
+      product_id: selectedProduct.id,
+      product_name: selectedProduct.name_en
+    });
+  }, [currentView, selectedProduct?.id]);
+
+  const refreshWebsiteAnalytics = async () => {
+    setAnalyticsLoading(true);
+    const result = await fetchWebsiteEvents();
+    setWebsiteEvents(result.events);
+    setAnalyticsError(result.error ?? '');
+    setAnalyticsLoading(false);
+  };
+
+  useEffect(() => {
+    if (currentView === 'admin' && adminAuthenticated && activeAdminSection === 'analytics') {
+      void refreshWebsiteAnalytics();
+    }
+  }, [currentView, adminAuthenticated, activeAdminSection]);
 
   useEffect(() => {
     try { window.localStorage.setItem('vistalab.brands', JSON.stringify(brands)); } catch { /* Browser storage may be unavailable or full. */ }
@@ -1351,6 +1408,29 @@ export default function App() {
               </div>
             </div>
 
+            <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+              <nav aria-label="Admin pages" className="h-fit rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-5">
+                <p className="px-3 pb-2 pt-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{tx('Website pages', 'ទំព័រគេហទំព័រ')}</p>
+                {[
+                  { id: 'overview', label: tx('Overview', 'ទិដ្ឋភាពទូទៅ'), detail: tx('Site summary', 'សេចក្តីសង្ខេប') },
+                  { id: 'contact', label: tx('Contact', 'ទំនាក់ទំនង'), detail: tx('Phones and address', 'ទូរស័ព្ទ និងអាសយដ្ឋាន') },
+                  { id: 'home', label: tx('Homepage poster', 'ផ្ទាំងទំព័រដើម'), detail: tx('Hero image and text', 'រូបភាព និងអត្ថបទ') },
+                  { id: 'about', label: tx('About & distribution', 'អំពីយើង និងការចែកចាយ'), detail: tx('Page banners and text', 'បដា និងអត្ថបទ') },
+                  { id: 'brands', label: tx('Brands', 'ម៉ាកផលិតផល'), detail: `${brands.length} ${tx('brands', 'ម៉ាក')}` },
+                  { id: 'news', label: tx('News', 'ព័ត៌មាន'), detail: `${news.length} ${tx('articles', 'អត្ថបទ')}` },
+                  { id: 'inquiries', label: tx('Inquiries', 'សំណួរ'), detail: `${inquiries.filter((item) => item.status === 'New').length} ${tx('new', 'ថ្មី')}` },
+                  { id: 'analytics', label: tx('Traffic analytics', 'ស្ថិតិអ្នកចូលមើល'), detail: tx('Visits and product views', 'ការចូលមើល និងផលិតផល') },
+                  { id: 'products', label: tx('Products', 'ផលិតផល'), detail: `${products.length} ${tx('products', 'ផលិតផល')}` },
+                ].map((item) => (
+                  <button key={item.id} type="button" onClick={() => setActiveAdminSection(item.id)} aria-current={activeAdminSection === item.id ? 'page' : undefined}
+                    className={`mb-1 flex w-full items-center justify-between gap-2 rounded-2xl px-3 py-3 text-left transition ${activeAdminSection === item.id ? 'bg-green-700 text-white shadow-sm' : 'text-slate-700 hover:bg-green-50'}`}>
+                    <span className="min-w-0"><span className="block text-sm font-bold">{item.label}</span><span className={`mt-0.5 block text-[11px] ${activeAdminSection === item.id ? 'text-green-100' : 'text-slate-500'}`}>{item.detail}</span></span>
+                    <span aria-hidden="true" className="text-lg leading-none">›</span>
+                  </button>
+                ))}
+              </nav>
+              <div className="min-w-0 space-y-5 sm:space-y-8">
+            {activeAdminSection === 'overview' && <>
             {/* CMS Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -1375,6 +1455,8 @@ export default function App() {
               {tx('Admin sign-in is verified by Supabase. CMS edits are still saved only in this browser and do not update the live site for other visitors.', 'ការចូលគណនីអ្នកគ្រប់គ្រងត្រូវបានផ្ទៀងផ្ទាត់ដោយ Supabase។ ការកែប្រែមាតិកានៅតែរក្សាទុកតែក្នុងកម្មវិធីរុករកនេះ ហើយមិនធ្វើបច្ចុប្បន្នភាពគេហទំព័រសម្រាប់អ្នកទស្សនាផ្សេងទៀតទេ។')}
             </p>
 
+            </>}
+            {activeAdminSection === 'contact' && <>
             <form onSubmit={(event) => { event.preventDefault(); triggerToast(tx('Contact details saved.', 'បានរក្សាទុកព័ត៌មានទំនាក់ទំនង។')); }} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
               <div>
                 <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#202124]"><Phone className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />{tx('Edit Contact Page Information', 'កែសម្រួលព័ត៌មានទំនាក់ទំនង')}</h2>
@@ -1393,6 +1475,8 @@ export default function App() {
               <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Contact Information', 'រក្សាទុកព័ត៌មានទំនាក់ទំនង')}</button>
             </form>
 
+            </>}
+            {activeAdminSection === 'home' && <>
             <section className="rounded-3xl border border-green-200 bg-white p-5 shadow-sm space-y-4 sm:p-6">
               <div>
                 <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-900"><Edit className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />{tx('Edit Homepage Poster', 'កែសម្រួលផ្ទាំងរូបភាពទំព័រដើម')}</h2>
@@ -1410,6 +1494,8 @@ export default function App() {
               </div>
               <p className="text-xs text-slate-500">{tx('Changes save in this browser automatically.', 'ការកែប្រែត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះដោយស្វ័យប្រវត្តិ។')}</p>
             </section>
+            </>}
+            {activeAdminSection === 'about' && <>
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4 sm:p-6">
               <div><h2 className="flex items-center gap-2 text-lg font-extrabold text-[#202124]"><Building2 className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />{tx('Edit About Page Header', 'កែសម្រួលក្បាលទំព័រអំពីយើង')}</h2><p className="text-xs text-slate-500">{tx('Upload a banner image, choose its motion, and edit the About page heading and description in both languages.', 'បញ្ចូលរូបភាពបដា កំណត់ចលនា និងកែសម្រួលចំណងជើង ព្រមទាំងសេចក្តីពិពណ៌នាជាភាសាអង់គ្លេស និងខ្មែរ។')}</p></div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1423,6 +1509,8 @@ export default function App() {
                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-xs font-bold text-slate-700 sm:col-span-2"><input type="checkbox" checked={settings.aboutHeroAnimated} onChange={(event) => setSettings({ ...settings, aboutHeroAnimated: event.target.checked })} className="h-4 w-4 accent-green-500" />{tx('Animate the banner image', 'បើកចលនាសម្រាប់រូបភាពបដា')}</label>
               </div>
             </section>
+            </>}
+            {activeAdminSection === 'brands' && <>
             {/* Brand editor */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1483,6 +1571,8 @@ export default function App() {
               )}
             </div>
 
+            </>}
+            {activeAdminSection === 'news' && <>
             {/* News article editor */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1526,6 +1616,8 @@ export default function App() {
               )}
             </div>
 
+            </>}
+            {activeAdminSection === 'inquiries' && <>
             {/* Inquiries Inbox Console */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
@@ -1583,6 +1675,61 @@ export default function App() {
               </div>
             </div>
 
+            </>}
+            {activeAdminSection === 'analytics' && <section className="space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><BarChart3 className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Website traffic', 'ចរាចរណ៍គេហទំព័រ')}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{tx('A quick look at page visits and products people open.', 'មើលចំនួនទំព័រដែលបានចូលមើល និងផលិតផលដែលអ្នកប្រើបានបើក។')}</p>
+                </div>
+                <button type="button" onClick={() => void refreshWebsiteAnalytics()} disabled={analyticsLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
+                  <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} aria-hidden="true" />{analyticsLoading ? tx('Loading…', 'កំពុងផ្ទុក…') : tx('Refresh', 'ផ្ទុកឡើងវិញ')}
+                </button>
+              </div>
+
+              {analyticsError ? <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+                <p className="font-extrabold">{tx('Analytics setup is needed', 'ត្រូវរៀបចំស្ថិតិជាមុន')}</p>
+                <p className="mt-1">{tx('Run supabase/website_analytics_setup.sql in your Supabase SQL Editor, then refresh this page. New visits will appear after setup.', 'ដំណើរការឯកសារ supabase/website_analytics_setup.sql ក្នុង Supabase SQL Editor រួចចុចផ្ទុកឡើងវិញ។ ការចូលមើលថ្មីនឹងបង្ហាញបន្ទាប់ពីរៀបចំរួច។')}</p>
+                <p className="mt-2 break-words text-xs text-amber-800">{analyticsError}</p>
+              </div> : <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {[
+                    { label: tx('Page views · 7 days', 'ការមើលទំព័រ · ៧ ថ្ងៃ'), value: analyticsWeekEvents.filter((event) => event.event_type === 'page_view').length, icon: Eye },
+                    { label: tx('Visitors · 7 days', 'អ្នកចូលមើល · ៧ ថ្ងៃ'), value: new Set(analyticsWeekEvents.map((event) => event.visitor_id)).size, icon: Users },
+                    { label: tx('Product views · 7 days', 'ការមើលផលិតផល · ៧ ថ្ងៃ'), value: analyticsWeekEvents.filter((event) => event.event_type === 'product_view').length, icon: Package },
+                  ].map((card) => <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-500"><card.icon className="h-4 w-4 text-green-700" aria-hidden="true" />{card.label}</div>
+                    <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{card.value.toLocaleString()}</p>
+                  </div>)}
+                </div>
+
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="text-base font-extrabold text-slate-900">{tx('Most viewed products', 'ផលិតផលដែលមានអ្នកមើលច្រើន')}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{tx('Based on recorded product opens.', 'ផ្អែកលើចំនួនបើកមើលផលិតផលដែលបានកត់ត្រា។')}</p>
+                    {popularProducts.length ? <ol className="mt-4 space-y-3">{popularProducts.map((product, index) => <li key={product.name} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-green-100 text-xs font-black text-green-800">{index + 1}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{product.name}</span>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-800">{product.views} {tx('views', 'ដង')}</span>
+                    </li>)}</ol> : <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No product views recorded yet.', 'មិនទាន់មានការមើលផលិតផលទេ។')}</p>}
+                  </section>
+
+                  <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="text-base font-extrabold text-slate-900">{tx('Recent activity', 'សកម្មភាពថ្មីៗ')}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{tx('Latest page and product views.', 'ការមើលទំព័រ និងផលិតផលថ្មីៗ។')}</p>
+                    <div className="mt-4 space-y-2">
+                      {websiteEvents.slice(0, 8).map((event) => <div key={event.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">{event.event_type === 'product_view' ? <Package className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}</span>
+                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-800">{event.event_type === 'product_view' ? event.product_name || tx('Product', 'ផលិតផល') : tx(`${analyticsPageName(event.page_path)} page`, `ទំព័រ ${analyticsPageName(event.page_path)}`)}</span><span className="block text-xs text-slate-500">{event.event_type === 'product_view' ? tx('Product viewed', 'បានមើលផលិតផល') : tx('Page visited', 'បានចូលមើលទំព័រ')}</span></span>
+                        <time className="shrink-0 text-[11px] text-slate-500" dateTime={event.created_at}>{new Date(event.created_at).toLocaleDateString(lang === 'KH' ? 'km-KH' : 'en-GB', { day: 'numeric', month: 'short' })}</time>
+                      </div>)}
+                      {!websiteEvents.length && <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No visits yet. New activity will appear here.', 'មិនទាន់មានអ្នកចូលមើលទេ។ សកម្មភាពថ្មីនឹងបង្ហាញនៅទីនេះ។')}</p>}
+                    </div>
+                  </section>
+                </div>
+              </>}
+            </section>}
+            {activeAdminSection === 'products' && <>
             {/* Quick Product Creator CMS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#202124]"><Package className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />{tx('Add New Product to Website Catalog', 'បន្ថែមផលិតផលថ្មីទៅក្នុងកាតាឡុកគេហទំព័រ')}</h2>
@@ -1631,7 +1778,7 @@ export default function App() {
                   {tx('+ Publish Product to Catalog', '+ បោះពុម្ពផលិតផលទៅកាតាឡុក')}
                 </button>
               </form>
-            </div>
+          </div>
 
             {/* Edit existing products */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
@@ -1680,6 +1827,9 @@ export default function App() {
                 </form>
               )}
             </div>
+            </>}
+              </div>
+              </div>
           </div>
         )}
       </main>
