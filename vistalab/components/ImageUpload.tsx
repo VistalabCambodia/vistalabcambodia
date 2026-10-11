@@ -79,19 +79,27 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
       if (/^https?:\/\//i.test(cropImage.url)) imageElement.crossOrigin = 'anonymous';
       imageElement.src = cropImage.url;
       await imageElement.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = 720;
-      canvas.height = 360;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Could not process this image.');
-      const fitScale = Math.min(canvas.width / cropImage.width, canvas.height / cropImage.height);
+      const fitScale = Math.min(720 / cropImage.width, 360 / cropImage.height);
       const drawWidth = cropImage.width * fitScale * zoom;
       const drawHeight = cropImage.height * fitScale * zoom;
-      const drawX = canvas.width / 2 + (pan.x / 100) * canvas.width - drawWidth / 2;
-      const drawY = canvas.height / 2 + (pan.y / 100) * canvas.height - drawHeight / 2;
-      context.drawImage(imageElement, drawX, drawY, drawWidth, drawHeight);
-      const dataUrl = canvas.toDataURL('image/webp', 0.82);
-      if (dataUrl.length > 280_000) throw new Error('This image is too large after processing. Try a smaller image.');
+      const drawX = 720 / 2 + (pan.x / 100) * 720 - drawWidth / 2;
+      const drawY = 360 / 2 + (pan.y / 100) * 360 - drawHeight / 2;
+      let dataUrl = '';
+      for (const size of [720, 576, 480]) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size / 2;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Could not process this image.');
+        const scale = size / 720;
+        context.drawImage(imageElement, drawX * scale, drawY * scale, drawWidth * scale, drawHeight * scale);
+        for (const quality of [0.82, 0.68, 0.54, 0.4]) {
+          dataUrl = canvas.toDataURL('image/webp', quality);
+          if (dataUrl.length <= 280_000) break;
+        }
+        if (dataUrl.length <= 280_000) break;
+      }
+      if (dataUrl.length > 280_000) throw new Error('This logo is too detailed to fit the upload limit. Try a smaller image.');
       onChange(dataUrl);
       closeCrop();
     } catch (cropError) {
