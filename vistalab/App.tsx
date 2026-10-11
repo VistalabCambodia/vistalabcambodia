@@ -1844,8 +1844,33 @@ export default function App() {
                   <input aria-label="Country of origin" placeholder={tx('Country of origin', 'ប្រទេសដើម')} value={editingBrand.origin} onChange={(event) => setEditingBrand({ ...editingBrand, origin: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <textarea aria-label="Brand description" placeholder={tx('Brand description', 'ការពិពណ៌នាអំពីម៉ាក')} rows={3} value={editingBrand.description} onChange={(event) => setEditingBrand({ ...editingBrand, description: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <textarea aria-label="Brand description in Khmer" placeholder={tx('Brand description (Khmer)', 'ការពិពណ៌នាអំពីម៉ាក (ខ្មែរ)')} rows={3} value={editingBrand.description_kh || ''} onChange={(event) => setEditingBrand({ ...editingBrand, description_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                  <ImageUpload label={tx('Brand picture or logo', 'រូបភាពម៉ាក ឬរូបសញ្ញា')} lang={lang} image={editingBrand.image} onChange={(image) => setEditingBrand({ ...editingBrand, image })} crop />
-                  <p className="-mt-2 text-xs text-slate-500 sm:col-span-2">Cropping updates the preview. Click <strong>Save Brand</strong> below to upload the logo to Supabase.</p>
+                  <ImageUpload label={tx('Brand picture or logo', 'រូបភាពម៉ាក ឬរូបសញ្ញា')} lang={lang} image={editingBrand.image} onChange={async (image) => {
+                    const updatedBrand = { ...editingBrand, image };
+                    setEditingBrand(updatedBrand);
+                    if (!supabaseClient) return;
+                    setBrandSaving(true);
+                    setSiteContentSyncing(true);
+                    setSiteContentError('');
+                    try {
+                      const nextBrands = brands.map((brand) => brand.id === updatedBrand.id ? updatedBrand : brand);
+                      const saved = await saveSiteContent(nextBrands, news, settings);
+                      siteContentBaseline.current = JSON.stringify(saved);
+                      setBrands(saved.brands);
+                      setNews(saved.news);
+                      setSettings(saved.settings);
+                      const persistedBrand = saved.brands.find((brand) => brand.id === updatedBrand.id);
+                      if (persistedBrand) setEditingBrand(persistedBrand);
+                      triggerToast('Logo crop saved to Supabase.');
+                    } catch (error) {
+                      const message = error instanceof Error ? error.message : 'Could not save the logo crop to Supabase.';
+                      setSiteContentError(message);
+                      throw new Error(message);
+                    } finally {
+                      setBrandSaving(false);
+                      setSiteContentSyncing(false);
+                    }
+                  }} crop />
+                  <p className="-mt-2 text-xs text-slate-500 sm:col-span-2">Saving the crop uploads the logo to Supabase immediately. Use <strong>Save Brand</strong> for any other edits.</p>
                   <ImageUpload label={tx('Country flag picture (optional)', 'រូបទង់ជាតិ (ស្រេចចិត្ត)')} lang={lang} image={editingBrand.flagImage} onChange={(flagImage) => setEditingBrand({ ...editingBrand, flagImage })} />
                   <div className="flex gap-2 sm:col-span-2">
                     <button type="submit" disabled={brandSaving} className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 disabled:cursor-wait disabled:opacity-60">{brandSaving ? 'Saving image...' : 'Save Brand'}</button>

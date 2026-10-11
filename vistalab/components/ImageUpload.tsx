@@ -51,7 +51,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
   label: string;
   image?: string;
   lang: 'EN' | 'KH';
-  onChange: (image: string) => void;
+  onChange: (image: string) => void | Promise<void>;
   crop?: boolean;
 }) {
   const [error, setError] = useState('');
@@ -100,7 +100,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
         if (dataUrl.length <= 280_000) break;
       }
       if (dataUrl.length > 280_000) throw new Error('This logo is too detailed to fit the upload limit. Try a smaller image.');
-      onChange(dataUrl);
+      await onChange(dataUrl);
       closeCrop();
     } catch (cropError) {
       const message = cropError instanceof Error ? cropError.message : 'Image processing failed.';
