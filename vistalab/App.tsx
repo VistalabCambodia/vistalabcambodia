@@ -1211,7 +1211,7 @@ export default function App() {
               {brands.map((b) => (
                 <div key={b.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between">
                   <div className="space-y-5 p-5 sm:p-6">
-                    <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-green-50 p-5 sm:h-40">
+                    <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white p-5 sm:h-40">
                       {b.image ? (
                         <img src={b.image} alt={`${b.name} logo`} className="h-full w-full object-contain" />
                       ) : (
