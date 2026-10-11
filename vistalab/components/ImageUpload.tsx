@@ -76,6 +76,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
     setError('');
     try {
       const imageElement = new Image();
+      if (/^https?:\/\//i.test(cropImage.url)) imageElement.crossOrigin = 'anonymous';
       imageElement.src = cropImage.url;
       await imageElement.decode();
       const canvas = document.createElement('canvas');
@@ -148,7 +149,9 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
           <img src={image} alt="Upload preview" className={`rounded-lg border border-slate-200 object-contain ${crop ? 'h-16 w-32 bg-white' : 'h-16 w-20'}`} />
           {crop && <button type="button" onClick={() => {
             const probe = new Image();
+            if (/^https?:\/\//i.test(image)) probe.crossOrigin = 'anonymous';
             probe.onload = () => { setCropImage({ url: image, width: probe.naturalWidth, height: probe.naturalHeight }); setZoom(1); setPan({ x: 0, y: 0 }); };
+            probe.onerror = () => setError(cropText('This image cannot be edited from its current location. Please upload the logo file again.', 'មិនអាចកែរូបភាពនេះពីទីតាំងបច្ចុប្បន្នបានទេ។ សូមបញ្ចូលឯកសាររូបសញ្ញាម្ដងទៀត។'));
             probe.src = image;
           }} className="text-xs font-semibold text-green-800 hover:underline">{cropText('Adjust crop', 'កែសម្រួលការកាត់រូប')}</button>}
           <button type="button" onClick={() => onChange('')} className="text-xs font-semibold text-red-700 hover:underline">{isKhmer ? 'លុបរូបភាព' : 'Remove image'}</button>
