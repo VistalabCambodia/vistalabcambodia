@@ -21,6 +21,7 @@ import {
 import { Modal } from './components/Modal';
 
 import { ImageUpload } from './components/ImageUpload';
+import { BrandMark } from './components/BrandMark';
 import { CountryFlag } from './components/CountryFlag';
 import { loadStoredArray } from './utils/storage';
 import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } from './data/translations';
@@ -717,14 +718,14 @@ export default function App() {
             onClick={() => setCurrentView('home')} 
             className="cursor-pointer flex min-w-0 flex-1 items-center space-x-3 group"
           >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#F47B53] text-white flex items-center justify-center font-black text-xl shadow-md border border-white/60 group-hover:scale-105 transition-transform">
-              VL
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-green-100 bg-white shadow-sm transition-transform group-hover:scale-105 sm:h-11 sm:w-11">
+              <BrandMark className="h-8 w-8 sm:h-9 sm:w-9" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center truncate text-base font-extrabold tracking-tight text-[#202124] sm:text-xl">
-                VISTALAB <img src="./cambodia-flag.svg" alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="ml-1.5 inline-block h-[18px] w-[28px] rounded-[2px] align-[-3px] object-cover shadow-sm ring-1 ring-black/10" />
+              <div className="flex items-center gap-2 truncate text-[15px] font-black tracking-[0.04em] text-[#153C73] sm:text-xl">
+                VISTALAB <img src="./cambodia-flag.svg" alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="inline-block h-4 w-6 shrink-0 rounded-[3px] align-middle object-cover shadow-sm ring-1 ring-black/10 sm:h-[18px] sm:w-[27px]" />
               </div>
-              <div className="text-[10px] sm:text-xs text-slate-500 font-medium tracking-wide max-[360px]:hidden">
+              <div className="text-[9px] font-semibold tracking-[0.09em] text-slate-500 sm:text-[10px] sm:tracking-[0.12em] max-[360px]:hidden">
                 {tx('FMCG IMPORTER & DISTRIBUTOR', 'អ្នកនាំចូល និងចែកចាយផលិតផល FMCG')}
               </div>
             </div>
@@ -2354,7 +2355,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-7 sm:gap-8">
           <div className="col-span-2 space-y-3 md:col-span-1">
             <div className="flex items-center space-x-2 text-white font-extrabold text-lg">
-              <div className="w-8 h-8 rounded-lg bg-green-500 text-slate-950 flex items-center justify-center font-black text-sm">VL</div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-green-100 bg-white shadow-sm"><BrandMark className="h-7 w-7" /></div>
               <span>VISTALAB CAMBODIA</span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">{t.footerDesc}</p>
