@@ -79,6 +79,8 @@ Then open the website, sign in to the admin page, and select **Products**. If th
 
 Run [`supabase/site_content_storage_setup.sql`](supabase/site_content_storage_setup.sql) in the Supabase SQL Editor too. Then open the site and sign in to the admin page. The first admin visit copies existing brands, news, page text, contact details, and uploaded banner/logo/flag/news images from that browser into Supabase. Future edits sync automatically; pictures are stored in the public `site-images` bucket. The admin dashboard shows whether the setup is connected or needs attention.
 
+Use **Admin → Data & storage** to check product, site content, and traffic table availability, view image counts and estimated size by bucket, and open recent uploads. Click **Check again** to refresh the dashboard values.
+
 GitHub Pages continues to host the website. Supabase stores products, editable page content, and uploaded pictures; monitor your project usage as the site grows. Inquiry submissions remain in the current browser's local storage.
 
 ## Admin traffic analytics

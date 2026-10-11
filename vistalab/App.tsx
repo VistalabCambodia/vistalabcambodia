@@ -4,7 +4,7 @@ import {
   MapPin, Search, Menu, X, ChevronRight, ChevronDown, CheckCircle, 
   Users, Layers, ExternalLink, Plus, Edit, Trash2, Filter, Eye, 
   ArrowRight, Sparkles, MessageCircle, BarChart3, FileText, Settings,
-  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check
+  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon
 } from 'lucide-react';
 import {
   distributionHubs,
@@ -28,6 +28,57 @@ import { isAdminUser, supabaseClient } from './utils/supabase';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
 import { mapProductRow, saveProductToSupabase } from './utils/productRepository';
 import { mapSiteContentRow, saveSiteContent } from './utils/siteContentRepository';
+
+type RecentStoredImage = { bucket: string; name: string; createdAt: string; bytes: number };
+type BucketHealth = { bucket: string; files: number; bytes: number; latest: { name: string; createdAt: string } | null; recent: RecentStoredImage[]; error?: string };
+type DataHealth = { products: { count: number; error?: string }; siteContent: { count: number; error?: string }; events: { count: number; error?: string }; buckets: BucketHealth[]; recentUploads: RecentStoredImage[]; checkedAt: string };
+
+async function inspectImageBucket(bucket: string): Promise<BucketHealth> {
+  if (!supabaseClient) return { bucket, files: 0, bytes: 0, latest: null, recent: [], error: 'Supabase is not configured.' };
+  let files = 0;
+  let bytes = 0;
+  let latest: BucketHealth['latest'] = null;
+  const recent: RecentStoredImage[] = [];
+  const pendingFolders = [''];
+
+  while (pendingFolders.length) {
+    const folder = pendingFolders.pop()!;
+    let offset = 0;
+    while (true) {
+      const { data, error } = await supabaseClient.storage.from(bucket).list(folder, { limit: 100, offset });
+      if (error) return { bucket, files, bytes, latest, recent, error: error.message };
+      const items = data ?? [];
+      for (const item of items) {
+        if (!item.id) {
+          pendingFolders.push(folder ? `${folder}/${item.name}` : item.name);
+          continue;
+        }
+        files += 1;
+        const fileBytes = Number(item.metadata?.size ?? 0);
+        bytes += fileBytes;
+        if (item.created_at) {
+          const name = folder ? `${folder}/${item.name}` : item.name;
+          recent.push({ bucket, name, createdAt: item.created_at, bytes: fileBytes });
+          recent.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+          recent.length = Math.min(recent.length, 8);
+          if (!latest || Date.parse(item.created_at) > Date.parse(latest.createdAt)) {
+            latest = { name, createdAt: item.created_at };
+          }
+        }
+      }
+      if (items.length < 100) break;
+      offset += items.length;
+    }
+  }
+  return { bucket, files, bytes, latest, recent };
+}
+
+function formatStorageBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
 
 const windows1252SpecialCharacters = [
   '\u20ac', '\u0081', '\u201a', '\u0192', '\u201e', '\u2026', '\u2020', '\u2021',
@@ -80,6 +131,9 @@ export default function App() {
   const [websiteEvents, setWebsiteEvents] = useState<WebsiteEvent[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
+  const [dataHealth, setDataHealth] = useState<DataHealth | null>(null);
+  const [dataHealthLoading, setDataHealthLoading] = useState(false);
+  const [dataHealthError, setDataHealthError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -465,9 +519,40 @@ export default function App() {
     setAnalyticsLoading(false);
   };
 
+  const refreshDataHealth = async () => {
+    if (!supabaseClient) {
+      setDataHealthError('Supabase is not configured.');
+      return;
+    }
+    setDataHealthLoading(true);
+    setDataHealthError('');
+    const [productsResult, contentResult, eventsResult, siteImages, productImages] = await Promise.all([
+      supabaseClient.from('products').select('id', { count: 'exact', head: true }),
+      supabaseClient.from('site_content').select('id', { count: 'exact', head: true }),
+      supabaseClient.from('website_events').select('id', { count: 'exact', head: true }),
+      inspectImageBucket('site-images'),
+      inspectImageBucket('product-images')
+    ]);
+    setDataHealth({
+      products: { count: productsResult.count ?? 0, ...(productsResult.error ? { error: productsResult.error.message } : {}) },
+      siteContent: { count: contentResult.count ?? 0, ...(contentResult.error ? { error: contentResult.error.message } : {}) },
+      events: { count: eventsResult.count ?? 0, ...(eventsResult.error ? { error: eventsResult.error.message } : {}) },
+      buckets: [siteImages, productImages],
+      recentUploads: [...siteImages.recent, ...productImages.recent].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 8),
+      checkedAt: new Date().toISOString()
+    });
+    setDataHealthLoading(false);
+  };
+
   useEffect(() => {
     if (currentView === 'admin' && adminAuthenticated && activeAdminSection === 'analytics') {
       void refreshWebsiteAnalytics();
+    }
+  }, [currentView, adminAuthenticated, activeAdminSection]);
+
+  useEffect(() => {
+    if (currentView === 'admin' && adminAuthenticated && activeAdminSection === 'storage') {
+      void refreshDataHealth();
     }
   }, [currentView, adminAuthenticated, activeAdminSection]);
 
@@ -1553,6 +1638,7 @@ export default function App() {
                   { id: 'news', label: tx('News', 'ព័ត៌មាន'), detail: `${news.length} ${tx('articles', 'អត្ថបទ')}` },
                   { id: 'inquiries', label: tx('Inquiries', 'សំណួរ'), detail: `${inquiries.filter((item) => item.status === 'New').length} ${tx('new', 'ថ្មី')}` },
                   { id: 'analytics', label: tx('Traffic analytics', 'ស្ថិតិអ្នកចូលមើល'), detail: tx('Visits and product views', 'ការចូលមើល និងផលិតផល') },
+                  { id: 'storage', label: tx('Data & storage', 'ទិន្នន័យ និងឃ្លាំងផ្ទុក'), detail: tx('Health and uploaded images', 'សុខភាពទិន្នន័យ និងរូបភាព') },
                   { id: 'products', label: tx('Products', 'ផលិតផល'), detail: `${products.length} ${tx('products', 'ផលិតផល')}` },
                 ].map((item) => (
                   <button key={item.id} type="button" onClick={() => setActiveAdminSection(item.id)} aria-current={activeAdminSection === item.id ? 'page' : undefined}
@@ -1859,6 +1945,67 @@ export default function App() {
                       {!websiteEvents.length && <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No visits yet. New activity will appear here.', 'មិនទាន់មានអ្នកចូលមើលទេ។ សកម្មភាពថ្មីនឹងបង្ហាញនៅទីនេះ។')}</p>}
                     </div>
                   </section>
+                </div>
+              </>}
+            </section>}
+            {activeAdminSection === 'storage' && <section className="space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><HardDrive className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Data & storage health', 'សុខភាពទិន្នន័យ និងឃ្លាំងផ្ទុក')}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{tx('Check database setup and see how many pictures are stored in Supabase.', 'ពិនិត្យការរៀបចំមូលដ្ឋានទិន្នន័យ និងចំនួនរូបភាពដែលរក្សាទុកក្នុង Supabase។')}</p>
+                </div>
+                <button type="button" onClick={() => void refreshDataHealth()} disabled={dataHealthLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
+                  <RefreshCw className={`h-4 w-4 ${dataHealthLoading ? 'animate-spin' : ''}`} aria-hidden="true" />{dataHealthLoading ? tx('Checking…', 'កំពុងពិនិត្យ…') : tx('Check again', 'ពិនិត្យម្ដងទៀត')}
+                </button>
+              </div>
+
+              {dataHealthError && <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{dataHealthError}</p>}
+              {!dataHealth && dataHealthLoading && <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{tx('Checking your database and image buckets…', 'កំពុងពិនិត្យមូលដ្ឋានទិន្នន័យ និងឃ្លាំងរូបភាព…')}</div>}
+
+              {dataHealth && <>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { label: tx('Products table', 'តារាងផលិតផល'), check: dataHealth.products, icon: Package, setup: 'product_catalog_setup.sql' },
+                    { label: tx('Website content', 'មាតិកាគេហទំព័រ'), check: dataHealth.siteContent, icon: Database, setup: 'site_content_storage_setup.sql' },
+                    { label: tx('Traffic events', 'សកម្មភាពអ្នកចូលមើល'), check: dataHealth.events, icon: Eye, setup: 'website_analytics_setup.sql' }
+                  ].map((item) => <div key={item.label} className={`rounded-2xl border p-4 ${item.check.error ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-white'}`}>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800"><item.icon className="h-4 w-4 text-green-700" aria-hidden="true" />{item.label}</div>
+                    <p className={`mt-3 text-lg font-black ${item.check.error ? 'text-amber-800' : 'text-green-800'}`}>{item.check.error ? tx('Needs setup', 'ត្រូវរៀបចំ') : tx('Connected', 'បានភ្ជាប់')}</p>
+                    <p className="mt-1 break-words text-xs text-slate-600">{item.check.error ? <>{tx(`Run ${item.setup} in Supabase SQL Editor.`, `ដំណើរការ ${item.setup} ក្នុង Supabase SQL Editor។`)}<span className="mt-1 block text-amber-800">{item.check.error}</span></> : `${item.check.count.toLocaleString()} ${tx('records', 'កំណត់ត្រា')}`}</p>
+                  </div>)}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-wrap items-end justify-between gap-2">
+                    <div><h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900"><ImageIcon className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Uploaded images', 'រូបភាពដែលបានផ្ទុកឡើង')}</h3>
+                      <p className="mt-1 text-sm text-slate-500">{tx('Estimated size from image files currently in Supabase Storage.', 'ទំហំប៉ាន់ស្មានពីឯកសាររូបភាពដែលមានក្នុង Supabase Storage។')}</p>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">{dataHealth.buckets.reduce((sum, bucket) => sum + bucket.files, 0).toLocaleString()} {tx('files', 'ឯកសារ')} · {formatStorageBytes(dataHealth.buckets.reduce((sum, bucket) => sum + bucket.bytes, 0))}</p>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {dataHealth.buckets.map((bucket) => <div key={bucket.bucket} className={`rounded-2xl border p-4 ${bucket.error ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className="flex items-center justify-between gap-3"><span className="truncate text-sm font-bold text-slate-800">{bucket.bucket}</span><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${bucket.error ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-900'}`}>{bucket.error ? tx('Needs setup', 'ត្រូវរៀបចំ') : tx('Ready', 'រួចរាល់')}</span></div>
+                      {bucket.error ? <p className="mt-2 break-words text-xs text-amber-900">{bucket.error}</p> : <>
+                        <p className="mt-3 text-2xl font-black text-slate-900">{bucket.files.toLocaleString()} <span className="text-sm font-semibold text-slate-500">{tx('images', 'រូបភាព')}</span></p>
+                        <p className="mt-1 text-xs text-slate-600">{formatStorageBytes(bucket.bytes)} {tx('estimated size', 'ទំហំប៉ាន់ស្មាន')}</p>
+                        {bucket.latest && <p className="mt-3 truncate border-t border-slate-200 pt-3 text-xs text-slate-600" title={bucket.latest.name}>{tx('Latest upload:', 'បានផ្ទុកចុងក្រោយ៖')} {bucket.latest.name} · {new Date(bucket.latest.createdAt).toLocaleString(lang === 'KH' ? 'km-KH' : 'en-GB')}</p>}
+                      </>}
+                    </div>)}
+                  </div>
+                  <div className="mt-6 border-t border-slate-100 pt-5">
+                    <h4 className="text-sm font-extrabold text-slate-900">{tx('Recent uploads', 'រូបភាពដែលបានផ្ទុកថ្មីៗ')}</h4>
+                    {dataHealth.recentUploads.length ? <div className="mt-3 divide-y divide-slate-100">
+                      {dataHealth.recentUploads.map((file) => {
+                        const imageUrl = supabaseClient?.storage.from(file.bucket).getPublicUrl(file.name).data.publicUrl;
+                        return <div key={`${file.bucket}/${file.name}`} className="flex min-w-0 items-center gap-3 py-3">
+                          {imageUrl && <img src={imageUrl} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-slate-50 object-cover" />}
+                          <span className="min-w-0 flex-1"><span className="block truncate text-xs font-bold text-slate-800" title={file.name}>{file.name}</span><span className="mt-1 block truncate text-[11px] text-slate-500">{file.bucket} · {new Date(file.createdAt).toLocaleString(lang === 'KH' ? 'km-KH' : 'en-GB')} · {formatStorageBytes(file.bytes)}</span></span>
+                          {imageUrl && <a href={imageUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-green-800 hover:bg-green-50">{tx('Open', 'បើក')}</a>}
+                        </div>;
+                      })}
+                    </div> : <p className="mt-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">{tx('No images are stored in the connected buckets yet.', 'មិនទាន់មានរូបភាពក្នុងឃ្លាំងដែលបានភ្ជាប់ទេ។')}</p>}
+                  </div>
+                  {dataHealth.checkedAt && <p className="mt-4 text-right text-[11px] text-slate-400">{tx('Checked', 'បានពិនិត្យ')} {new Date(dataHealth.checkedAt).toLocaleString(lang === 'KH' ? 'km-KH' : 'en-GB')}</p>}
                 </div>
               </>}
             </section>}
