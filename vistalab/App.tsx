@@ -68,6 +68,7 @@ export default function App() {
   const [adminAuthReady, setAdminAuthReady] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState('');
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -333,7 +334,10 @@ export default function App() {
                 <input type="email" autoComplete="username" required value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
               </label>
               <label className="block text-sm font-semibold text-slate-700">Password
-                <input type="password" autoComplete="current-password" required value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
+                <span className="relative mt-1 block">
+                  <input type={showAdminPassword ? 'text' : 'password'} autoComplete="current-password" required value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 pr-16 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
+                  <button type="button" onClick={() => setShowAdminPassword((visible) => !visible)} aria-label={showAdminPassword ? 'Hide password' : 'Show password'} aria-pressed={showAdminPassword} className="absolute inset-y-0 right-2 my-auto rounded-md px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-600">{showAdminPassword ? 'Hide' : 'Show'}</button>
+                </span>
               </label>
               {adminLoginError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{adminLoginError}</p>}
               <button type="submit" disabled={adminLoginBusy} className="w-full rounded-xl bg-[#267A3B] px-4 py-3 font-bold text-white transition hover:bg-[#206d34] disabled:cursor-wait disabled:opacity-60">{adminLoginBusy ? 'Signing in…' : 'Sign in'}</button>
