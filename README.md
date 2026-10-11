@@ -52,11 +52,12 @@ vistalab/
     translations.ts          English and Khmer copy
   utils/
     storage.ts               Browser storage helper
+    productRepository.ts     Product database and image uploads
 index.html                   Vite HTML shell
 public/images/               Static image assets
 ```
 
-The demo CMS stores edits in the current browser's local storage. Changes do not automatically sync to other browsers or devices.
+Brands, news, contact settings, and inquiries still use the current browser's local storage. Product records and product pictures can sync through Supabase so they appear to all visitors.
 
 ## Configure admin sign-in
 
@@ -67,7 +68,13 @@ The admin page is hidden from the public navigation. Open it directly at `https:
 3. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` using the Supabase project URL and publishable/anon key. Never use the service role key in the website.
 4. Redeploy the `Deploy to GitHub Pages` workflow. The login screen will be enabled after deployment.
 
-The CMS currently stores its edits only in the signed-in browser. Supabase protects access to the admin screen; it does not yet sync CMS content between visitors or devices.
+## Store products and pictures in Supabase
+
+After admin sign-in is configured, run [`supabase/product_catalog_setup.sql`](supabase/product_catalog_setup.sql) in the Supabase SQL Editor. This creates the product table and public image bucket with policies that let visitors read products and only approved admin accounts change them.
+
+Then open the website, sign in to the admin page, and select **Products**. If the table is empty, the existing product catalog in that browser will be uploaded automatically. After that, new and edited products and their pictures sync through Supabase and appear to visitors on other devices. If the database setup is missing, the Products page shows a setup message and retry button.
+
+The free GitHub Pages hosting continues to serve the website. Supabase stores product data and images; its free plan has usage limits, so check your project usage if the catalog grows substantially. Other CMS content (brands, news, contact settings, and inquiries) still stays in the current browser's local storage.
 
 ## Admin traffic analytics
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type FormEvent } from 'react';
+import React, { useState, useEffect, useRef, type FormEvent } from 'react';
 import { 
   Building2, Globe, Truck, Package, ShieldCheck, Phone, Mail, Send, Home, Info, Tags, Store, Newspaper, Handshake,
   MapPin, Search, Menu, X, ChevronRight, ChevronDown, CheckCircle, 
@@ -26,6 +26,7 @@ import { loadStoredArray } from './utils/storage';
 import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } from './data/translations';
 import { isAdminUser, supabaseClient } from './utils/supabase';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
+import { mapProductRow, saveProductToSupabase } from './utils/productRepository';
 
 const windows1252SpecialCharacters = [
   '\u20ac', '\u0081', '\u201a', '\u0192', '\u201e', '\u2026', '\u2020', '\u2021',
@@ -56,7 +57,9 @@ function repairKhmerMojibake(value: string): string {
   try {
     const decoded = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes));
     const khmerCount = (text: string) => (text.match(/[\u1780-\u17ff]/g) ?? []).length;
-    return khmerCount(decoded) > khmerCount(value) ? decoded : value;
+    // English text can be mojibake too (for example, “â€“” for an en dash),
+    // so requiring more Khmer characters leaves those settings visibly broken.
+    return decoded !== value && khmerCount(decoded) >= khmerCount(value) ? decoded : value;
   } catch {
     return value;
   }
@@ -164,12 +167,72 @@ export default function App() {
   // Data States
   const [brands, setBrands] = useState<Brand[]>(() => loadStoredArray('vistalab.brands', initialBrands));
   const [products, setProducts] = useState<Product[]>(() => loadStoredArray('vistalab.products', initialProducts));
+  const [productsDatabaseReady, setProductsDatabaseReady] = useState(!supabaseClient);
+  const [productsDatabaseError, setProductsDatabaseError] = useState('');
+  const [productsRetry, setProductsRetry] = useState(0);
+  const [productsLoaded, setProductsLoaded] = useState(!supabaseClient);
+  const [productsSyncing, setProductsSyncing] = useState(false);
+  const productBaseline = useRef(new Map<string, string>());
+  const productsInFlight = useRef(new Set<string>());
   const [news, setNews] = useState<NewsArticle[]>(() => loadStoredArray('vistalab.news', initialNews));
   const [inquiries, setInquiries] = useState<Inquiry[]>(() => loadStoredArray('vistalab.inquiries', initialInquiries));
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [newProductImage, setNewProductImage] = useState('');
+
+  useEffect(() => {
+    if (!supabaseClient) return;
+    let cancelled = false;
+    setProductsLoaded(false);
+    setProductsDatabaseReady(false);
+    setProductsDatabaseError('');
+    void (async () => {
+      const { data, error } = await supabaseClient.from('products').select('*').order('name_en');
+      if (cancelled) return;
+      if (error) {
+        setProductsDatabaseError(error.message);
+        setProductsLoaded(true);
+        return;
+      }
+      const remoteProducts = (data ?? []).map((row) => mapProductRow(row));
+      if (remoteProducts.length) {
+        productBaseline.current = new Map(remoteProducts.map((product) => [product.id, JSON.stringify(product)]));
+        setProducts(remoteProducts);
+      } else {
+        // The first admin who visits after setup imports this browser's existing catalog.
+        productBaseline.current = new Map();
+      }
+      setProductsDatabaseReady(true);
+      setProductsLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [productsRetry]);
+
+  useEffect(() => {
+    if (!supabaseClient || !productsLoaded || !productsDatabaseReady || !adminAuthenticated) return;
+    const changed = products.filter((product) =>
+      productBaseline.current.get(product.id) !== JSON.stringify(product) && !productsInFlight.current.has(product.id)
+    );
+    if (!changed.length) return;
+
+    setProductsSyncing(true);
+    void Promise.all(changed.map(async (product) => {
+      productsInFlight.current.add(product.id);
+      try {
+        const saved = await saveProductToSupabase(product);
+        productBaseline.current.set(saved.id, JSON.stringify(saved));
+        setProductsDatabaseError('');
+        if (saved.image !== product.image) {
+          setProducts((current) => current.map((item) => item.id === saved.id ? saved : item));
+        }
+      } catch (error) {
+        setProductsDatabaseError(error instanceof Error ? error.message : 'Could not save products to Supabase.');
+      } finally {
+        productsInFlight.current.delete(product.id);
+      }
+    })).finally(() => setProductsSyncing(productsInFlight.current.size > 0));
+  }, [products, productsLoaded, productsDatabaseReady, adminAuthenticated]);
   
   // Modals & Drawers
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -348,6 +411,7 @@ export default function App() {
   }, [brands]);
 
   useEffect(() => {
+    if (supabaseClient) return;
     try { window.localStorage.setItem('vistalab.products', JSON.stringify(products)); } catch { /* Storage may be unavailable or full. */ }
   }, [products]);
 
@@ -1100,7 +1164,6 @@ export default function App() {
                   { icon: Home, step: tx("6. CONSUMER", "៦. អ្នកប្រើប្រាស់"), detail: tx("Cambodian Households", "គ្រួសារនៅកម្ពុជា") }
                 ].map((s, idx) => (
                   <div key={idx} className="group rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-green-300 hover:shadow-md flex flex-col items-center justify-center space-y-2">
-                    <span className="mx-auto flex h-8 min-w-8 items-center justify-center rounded-full bg-green-100 px-2 text-xs font-black text-green-900">{idx + 1}</span>
                     <s.icon className="h-6 w-6 text-green-700 transition-transform duration-200 group-hover:scale-110" strokeWidth={1.8} aria-hidden="true" />
                     <span className="text-xs font-black text-[#202124]">{s.step}</span>
                     <span className="text-sm font-semibold leading-snug text-slate-800">{s.detail}</span>
@@ -1117,9 +1180,6 @@ export default function App() {
                 { title: tx("Wholesale & Regional Agents", "លក់ដុំ និងភ្នាក់ងារតាមតំបន់"), desc: tx("Partnering with major provincial wholesalers in Siem Reap, Battambang, and Kampot to ensure deep market coverage.", "សហការជាមួយអ្នកលក់ដុំសំខាន់ៗនៅសៀមរាប បាត់ដំបង និងកំពត ដើម្បីពង្រីកការចែកចាយឱ្យបានទូលំទូលាយ។") }
               ].map((c, idx) => (
                 <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-50 text-green-900 flex items-center justify-center font-black">
-                    0{idx+1}
-                  </div>
                   <h3 className="text-lg font-bold text-slate-900">{c.title}</h3>
                   <p className="text-sm text-slate-700 leading-relaxed">{c.desc}</p>
                 </div>
@@ -1730,6 +1790,13 @@ export default function App() {
               </>}
             </section>}
             {activeAdminSection === 'products' && <>
+            {supabaseClient && <div className={`rounded-2xl border p-4 text-sm ${productsDatabaseError ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-green-200 bg-green-50 text-green-950'}`}>
+              {productsDatabaseError ? <>
+                <p className="font-bold">{tx('Product database needs setup or a connection check.', 'ត្រូវរៀបចំមូលដ្ឋានទិន្នន័យផលិតផល ឬពិនិត្យការតភ្ជាប់។')}</p>
+                <p className="mt-1">{tx('Run supabase/product_catalog_setup.sql in the Supabase SQL Editor, then retry. Details:', 'សូមដំណើរការ supabase/product_catalog_setup.sql ក្នុង Supabase SQL Editor រួចសាកល្បងម្ដងទៀត។ ព័ត៌មានលម្អិត៖')} {productsDatabaseError}</p>
+                <button type="button" onClick={() => setProductsRetry((attempt) => attempt + 1)} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-sm">{tx('Retry connection', 'ព្យាយាមតភ្ជាប់ម្ដងទៀត')}</button>
+              </> : <p>{productsSyncing ? tx('Saving products and pictures to Supabase…', 'កំពុងរក្សាទុកផលិតផល និងរូបភាពទៅ Supabase…') : tx('Products are connected to Supabase. When you publish or edit a product, its details and picture sync for every visitor.', 'ផលិតផលបានភ្ជាប់ទៅ Supabase។ ពេលអ្នកបោះពុម្ព ឬកែផលិតផល ព័ត៌មាន និងរូបភាពនឹងធ្វើសមកាលកម្មសម្រាប់អ្នកទស្សនាទាំងអស់។')}</p>}
+            </div>}
             {/* Quick Product Creator CMS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#202124]"><Package className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />{tx('Add New Product to Website Catalog', 'បន្ថែមផលិតផលថ្មីទៅក្នុងកាតាឡុកគេហទំព័រ')}</h2>
