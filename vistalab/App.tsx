@@ -2351,8 +2351,8 @@ export default function App() {
 
       {}
       <footer className="site-footer-friendly bg-green-50 text-slate-700 text-xs border-t border-green-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-8">
-          <div className="space-y-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-7 sm:gap-8">
+          <div className="col-span-2 space-y-3 md:col-span-1">
             <div className="flex items-center space-x-2 text-white font-extrabold text-lg">
               <div className="w-8 h-8 rounded-lg bg-green-500 text-slate-950 flex items-center justify-center font-black text-sm">VL</div>
               <span>VISTALAB CAMBODIA</span>
@@ -2360,7 +2360,7 @@ export default function App() {
             <p className="text-slate-400 text-xs leading-relaxed">{t.footerDesc}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.quickLinks}</h4>
             <ul className="space-y-2 text-slate-400 font-medium">
               <li><button onClick={() => setCurrentView('about')} className="hover:text-white">{tx('About & Distribution', 'អំពីយើង និងបណ្តាញចែកចាយ')}</button></li>
@@ -2369,7 +2369,7 @@ export default function App() {
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{tx('Commercial', 'កិច្ចការពាណិជ្ជកម្ម')}</h4>
             <ul className="space-y-2 text-slate-400 font-medium">
               <li><button onClick={() => setCurrentView('partner')} className="hover:text-white">{t.navPartner}</button></li>
@@ -2378,20 +2378,20 @@ export default function App() {
             </ul>
           </div>
 
-          <div>
+          <div className="col-span-2 min-w-0 md:col-span-1">
             <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.contactInfo}</h4>
             <p className="text-slate-400 leading-relaxed">{tx('Hotline:', 'ទូរសព្ទ៖')} {settings.phone1}</p>
-            <p className="text-slate-400">{tx('Email:', 'អ៊ីមែល៖')} {settings.email}</p>
-            <p className="text-slate-400">Telegram: {settings.telegram}</p>
+            <p className="break-all text-slate-400">{tx('Email:', 'អ៊ីមែល៖')} {settings.email}</p>
+            <p className="break-all text-slate-400">Telegram: {settings.telegram}</p>
             <p className="mt-1"><a href={settings.facebook} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-white underline underline-offset-2">{tx('Facebook:', 'Facebook៖')} vistalab</a></p>
             <p className="text-slate-400 mt-2">{lang === 'KH' ? settings.address_kh : settings.address_en}</p>
           </div>
         </div>
 
-        <div className="bg-green-100/70 py-4 px-4 sm:px-8 text-center text-slate-600 border-t border-green-100">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="bg-green-100/70 px-4 py-4 pb-16 text-center text-slate-600 border-t border-green-100 sm:px-8 sm:pb-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             <p>© 2026 VistaLab Cambodia Co., Ltd. {t.rightsReserved}</p>
-            <div className="flex space-x-4 text-[11px]">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] sm:justify-end">
               <button onClick={() => setCurrentView('admin')} className="text-slate-500 transition hover:text-green-800">Admin sign in</button>
               <span className="hover:text-slate-400 cursor-pointer">{tx('Privacy Policy', 'គោលការណ៍ឯកជនភាព')}</span>
               <span className="hover:text-slate-400 cursor-pointer">{tx('Terms of Distribution', 'លក្ខខណ្ឌនៃការចែកចាយ')}</span>
