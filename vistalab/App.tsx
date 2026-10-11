@@ -1853,6 +1853,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
             <p>© 2026 VistaLab Cambodia Co., Ltd. {t.rightsReserved}</p>
             <div className="flex space-x-4 text-[11px]">
+              <button onClick={() => setCurrentView('admin')} className="text-slate-500 transition hover:text-green-800">Admin sign in</button>
               <span className="hover:text-slate-400 cursor-pointer">{tx('Privacy Policy', 'គោលការណ៍ឯកជនភាព')}</span>
               <span className="hover:text-slate-400 cursor-pointer">{tx('Terms of Distribution', 'លក្ខខណ្ឌនៃការចែកចាយ')}</span>
             </div>
