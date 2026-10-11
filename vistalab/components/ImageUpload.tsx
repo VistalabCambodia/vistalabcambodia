@@ -39,20 +39,20 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
-function getImageFit(width: number, height: number, zoom: number) {
-  const frameRatio = 2;
+function getImageFit(width: number, height: number, zoom: number, frameRatio: number) {
   const imageRatio = width / height;
   const fitWidth = imageRatio >= frameRatio ? 100 * zoom : (imageRatio / frameRatio) * 100 * zoom;
   const fitHeight = imageRatio >= frameRatio ? (frameRatio / imageRatio) * 100 * zoom : 100 * zoom;
   return { width: fitWidth, height: fitHeight };
 }
 
-export function ImageUpload({ label, image, lang, onChange, crop = false }: {
+export function ImageUpload({ label, image, lang, onChange, crop = false, aspectRatio = 2 }: {
   label: string;
   image?: string;
   lang: 'EN' | 'KH';
   onChange: (image: string) => void | Promise<void>;
   crop?: boolean;
+  aspectRatio?: number;
 }) {
   const [error, setError] = useState('');
   const [cropImage, setCropImage] = useState<CropImage | null>(null);
@@ -79,16 +79,17 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
       if (/^https?:\/\//i.test(cropImage.url)) imageElement.crossOrigin = 'anonymous';
       imageElement.src = cropImage.url;
       await imageElement.decode();
-      const fitScale = Math.min(720 / cropImage.width, 360 / cropImage.height);
+      const outputHeight = 720 / aspectRatio;
+      const fitScale = Math.min(720 / cropImage.width, outputHeight / cropImage.height);
       const drawWidth = cropImage.width * fitScale * zoom;
       const drawHeight = cropImage.height * fitScale * zoom;
       const drawX = 720 / 2 + (pan.x / 100) * 720 - drawWidth / 2;
-      const drawY = 360 / 2 + (pan.y / 100) * 360 - drawHeight / 2;
+      const drawY = outputHeight / 2 + (pan.y / 100) * outputHeight - drawHeight / 2;
       let dataUrl = '';
       for (const size of [720, 576, 480]) {
         const canvas = document.createElement('canvas');
         canvas.width = size;
-        canvas.height = size / 2;
+        canvas.height = Math.round(size / aspectRatio);
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Could not process this image.');
         const scale = size / 720;
@@ -99,7 +100,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
         }
         if (dataUrl.length <= 280_000) break;
       }
-      if (dataUrl.length > 280_000) throw new Error('This logo is too detailed to fit the upload limit. Try a smaller image.');
+      if (dataUrl.length > 280_000) throw new Error('This image is too detailed to fit the upload limit. Try a smaller image.');
       await onChange(dataUrl);
       closeCrop();
     } catch (cropError) {
@@ -179,7 +180,8 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
             </div>
 
             <div
-              className="relative aspect-[2/1] touch-none select-none overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-green-50 cursor-grab active:cursor-grabbing"
+              className="relative touch-none select-none overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-green-50 cursor-grab active:cursor-grabbing"
+              style={{ aspectRatio }}
               onPointerDown={(event) => {
                 event.currentTarget.setPointerCapture(event.pointerId);
                 dragStart.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
@@ -187,7 +189,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
               onPointerMove={(event) => {
                 if (!dragStart.current) return;
                 const rect = event.currentTarget.getBoundingClientRect();
-                const fit = getImageFit(cropImage.width, cropImage.height, zoom);
+                const fit = getImageFit(cropImage.width, cropImage.height, zoom, aspectRatio);
                 const maxX = Math.max(0, (fit.width - 100) / 2);
                 const maxY = Math.max(0, (fit.height - 100) / 2);
                 const nextX = dragStart.current.panX + ((event.clientX - dragStart.current.x) / rect.width) * 100;
@@ -203,10 +205,10 @@ export function ImageUpload({ label, image, lang, onChange, crop = false }: {
                 draggable={false}
                 className="pointer-events-none absolute max-w-none"
                 style={{
-                  width: `${getImageFit(cropImage.width, cropImage.height, zoom).width}%`,
-                  height: `${getImageFit(cropImage.width, cropImage.height, zoom).height}%`,
-                  left: `${50 + pan.x - getImageFit(cropImage.width, cropImage.height, zoom).width / 2}%`,
-                  top: `${50 + pan.y - getImageFit(cropImage.width, cropImage.height, zoom).height / 2}%`
+                  width: `${getImageFit(cropImage.width, cropImage.height, zoom, aspectRatio).width}%`,
+                  height: `${getImageFit(cropImage.width, cropImage.height, zoom, aspectRatio).height}%`,
+                  left: `${50 + pan.x - getImageFit(cropImage.width, cropImage.height, zoom, aspectRatio).width / 2}%`,
+                  top: `${50 + pan.y - getImageFit(cropImage.width, cropImage.height, zoom, aspectRatio).height / 2}%`
                 }}
               />
             </div>

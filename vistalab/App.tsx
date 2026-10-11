@@ -2165,7 +2165,7 @@ export default function App() {
                 </select>
                 <input required name="specs" placeholder={tx('Specifications / Description (English)', 'ព័ត៌មានលម្អិត / ការពិពណ៌នា (អង់គ្លេស)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
                 <input name="specs_kh" placeholder={tx('Specifications / Description (Khmer)', 'ព័ត៌មានលម្អិត / ការពិពណ៌នា (ខ្មែរ)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
-                <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={newProductImage} onChange={setNewProductImage} />
+                <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={newProductImage} onChange={setNewProductImage} crop aspectRatio={4 / 3} />
                 <button type="submit" className="bg-[#267A3B] text-white rounded-xl text-xs font-bold py-2.5 sm:col-span-3">
                   {tx('+ Publish Product to Catalog', '+ បោះពុម្ពផលិតផលទៅកាតាឡុក')}
                 </button>
@@ -2215,7 +2215,7 @@ export default function App() {
                   <input aria-label="Product sizes" placeholder={tx('Sizes / packaging', 'ទំហំ / ការវេចខ្ចប់')} value={editingProduct.sizes} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <textarea aria-label="Product description" placeholder={tx('Product description (English)', 'ការពិពណ៌នាអំពីផលិតផល (អង់គ្លេស)')} rows={3} value={editingProduct.specs} onChange={(event) => setEditingProduct({ ...editingProduct, specs: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <textarea aria-label="Product description in Khmer" placeholder={tx('Product description (Khmer)', 'ការពិពណ៌នាអំពីផលិតផល (ខ្មែរ)')} rows={3} value={editingProduct.specs_kh || ''} onChange={(event) => setEditingProduct({ ...editingProduct, specs_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                  <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={editingProduct.image} onChange={(image) => setEditingProduct({ ...editingProduct, image })} />
+                  <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={editingProduct.image} onChange={(image) => setEditingProduct({ ...editingProduct, image })} crop aspectRatio={4 / 3} />
                   <div className="flex gap-2 sm:col-span-2">
                     <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Product', 'រក្សាទុកផលិតផល')}</button>
                     <button type="button" onClick={() => setEditingProduct(null)} className="rounded-xl bg-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">{tx('Cancel', 'បោះបង់')}</button>
@@ -2242,7 +2242,7 @@ export default function App() {
             </button>
 
             <div className={`h-48 ${selectedProduct.imageBg} rounded-2xl flex items-center justify-center text-2xl font-black text-slate-600/50 uppercase`}>
-              {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl object-cover" /> : localizedProductBadge(selectedProduct)}
+              {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl bg-white object-contain" /> : localizedProductBadge(selectedProduct)}
             </div>
 
             <div className="space-y-2">
