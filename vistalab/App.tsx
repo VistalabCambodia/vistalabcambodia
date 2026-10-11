@@ -2038,7 +2038,7 @@ export default function App() {
                 </div>
               </>}
             </section>}
-            {activeAdminSection === 'storage' && <section className="space-y-5">
+            {activeAdminSection === 'storage' && <section className="min-w-0 space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <div>
                   <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><HardDrive className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Data & storage health', 'សុខភាពទិន្នន័យ និងឃ្លាំងផ្ទុក')}</h2>
@@ -2073,15 +2073,15 @@ export default function App() {
                   </div>)}
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="flex min-w-0 flex-wrap items-end justify-between gap-2">
                     <div><h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900"><ImageIcon className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Uploaded images', 'រូបភាពដែលបានផ្ទុកឡើង')}</h3>
                       <p className="mt-1 text-sm text-slate-500">{tx('Estimated size from image files currently in Supabase Storage.', 'ទំហំប៉ាន់ស្មានពីឯកសាររូបភាពដែលមានក្នុង Supabase Storage។')}</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-700">{dataHealth.buckets.reduce((sum, bucket) => sum + bucket.files, 0).toLocaleString()} {tx('files', 'ឯកសារ')} · {formatStorageBytes(dataHealth.buckets.reduce((sum, bucket) => sum + bucket.bytes, 0))}</p>
+                    <p className="max-w-full break-words text-left text-sm font-bold text-slate-700 sm:text-right">{dataHealth.buckets.reduce((sum, bucket) => sum + bucket.files, 0).toLocaleString()} {tx('files', 'ឯកសារ')} · {formatStorageBytes(dataHealth.buckets.reduce((sum, bucket) => sum + bucket.bytes, 0))}</p>
                   </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {dataHealth.buckets.map((bucket) => <div key={bucket.bucket} className={`rounded-2xl border p-4 ${bucket.error ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
+                    {dataHealth.buckets.map((bucket) => <div key={bucket.bucket} className={`min-w-0 overflow-hidden rounded-2xl border p-4 ${bucket.error ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
                       <div className="flex items-center justify-between gap-3"><span className="truncate text-sm font-bold text-slate-800">{bucket.bucket}</span><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${bucket.error ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-900'}`}>{bucket.error ? tx('Needs setup', 'ត្រូវរៀបចំ') : tx('Ready', 'រួចរាល់')}</span></div>
                       {bucket.error ? <p className="mt-2 break-words text-xs text-amber-900">{bucket.error}</p> : <>
                         <p className="mt-3 text-2xl font-black text-slate-900">{bucket.files.toLocaleString()} <span className="text-sm font-semibold text-slate-500">{tx('images', 'រូបភាព')}</span></p>
@@ -2090,12 +2090,12 @@ export default function App() {
                       </>}
                     </div>)}
                   </div>
-                  <div className="mt-6 border-t border-slate-100 pt-5">
+                  <div className="mt-6 min-w-0 border-t border-slate-100 pt-5">
                     <h4 className="text-sm font-extrabold text-slate-900">{tx('Recent uploads', 'រូបភាពដែលបានផ្ទុកថ្មីៗ')}</h4>
                     {dataHealth.recentUploads.length ? <div className="mt-3 divide-y divide-slate-100">
                       {dataHealth.recentUploads.map((file) => {
                         const imageUrl = supabaseClient?.storage.from(file.bucket).getPublicUrl(file.name).data.publicUrl;
-                        return <div key={`${file.bucket}/${file.name}`} className="flex min-w-0 items-center gap-3 py-3">
+                        return <div key={`${file.bucket}/${file.name}`} className="grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 py-3 sm:gap-3">
                           {imageUrl && <img src={imageUrl} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-slate-50 object-cover" />}
                           <span className="min-w-0 flex-1"><span className="block truncate text-xs font-bold text-slate-800" title={file.name}>{file.name}</span><span className="mt-1 block truncate text-[11px] text-slate-500">{file.bucket} · {new Date(file.createdAt).toLocaleString(lang === 'KH' ? 'km-KH' : 'en-GB')} · {formatStorageBytes(file.bytes)}</span></span>
                           {imageUrl && <a href={imageUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-green-800 hover:bg-green-50">{tx('Open', 'បើក')}</a>}
@@ -2327,7 +2327,7 @@ export default function App() {
       )}
 
       {}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col space-y-2 sm:bottom-6 sm:left-6 sm:right-auto">
+      {currentView !== 'admin' && <div className="fixed bottom-4 right-4 z-40 flex flex-col space-y-2 sm:bottom-6 sm:left-6 sm:right-auto">
         <a
           href={`https://t.me/${settings.telegram.replace('@','')}`}
           target="_blank"
@@ -2347,7 +2347,7 @@ export default function App() {
         >
           <span aria-hidden="true" className="text-2xl font-black leading-none">f</span>
         </a>
-      </div>
+      </div>}
 
       {}
       <footer className="site-footer-friendly bg-green-50 text-slate-700 text-xs border-t border-green-100">
