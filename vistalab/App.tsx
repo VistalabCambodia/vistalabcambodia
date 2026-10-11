@@ -4,7 +4,7 @@ import {
   MapPin, Search, Menu, X, ChevronRight, ChevronDown, CheckCircle, 
   Users, Layers, ExternalLink, Plus, Edit, Trash2, Filter, Eye, 
   ArrowRight, Sparkles, MessageCircle, BarChart3, FileText, Settings,
-  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon
+  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon, Download
 } from 'lucide-react';
 import {
   distributionHubs,
@@ -28,10 +28,24 @@ import { isAdminUser, supabaseClient } from './utils/supabase';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
 import { mapProductRow, saveProductToSupabase } from './utils/productRepository';
 import { mapSiteContentRow, saveSiteContent } from './utils/siteContentRepository';
+import { downloadSiteBackup } from './utils/backup';
 
 type RecentStoredImage = { bucket: string; name: string; createdAt: string; bytes: number };
 type BucketHealth = { bucket: string; files: number; bytes: number; latest: { name: string; createdAt: string } | null; recent: RecentStoredImage[]; error?: string };
 type DataHealth = { products: { count: number; error?: string }; siteContent: { count: number; error?: string }; events: { count: number; error?: string }; buckets: BucketHealth[]; recentUploads: RecentStoredImage[]; checkedAt: string };
+
+const adminSectionIcons = {
+  overview: Globe,
+  contact: Phone,
+  home: ImageIcon,
+  about: Info,
+  brands: Tags,
+  news: Newspaper,
+  inquiries: MessageCircle,
+  analytics: BarChart3,
+  storage: HardDrive,
+  products: Package
+};
 
 async function inspectImageBucket(bucket: string): Promise<BucketHealth> {
   if (!supabaseClient) return { bucket, files: 0, bytes: 0, latest: null, recent: [], error: 'Supabase is not configured.' };
@@ -134,6 +148,7 @@ export default function App() {
   const [dataHealth, setDataHealth] = useState<DataHealth | null>(null);
   const [dataHealthLoading, setDataHealthLoading] = useState(false);
   const [dataHealthError, setDataHealthError] = useState('');
+  const [backupLoading, setBackupLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -408,6 +423,27 @@ export default function App() {
 
   const t = translations[lang];
   const tx = (english: string, khmer: string) => lang === 'KH' ? khmer : english;
+
+  const handleDownloadBackup = async () => {
+    if (!adminAuthenticated || backupLoading) return;
+    setBackupLoading(true);
+    try {
+      const result = await downloadSiteBackup({
+        products,
+        brands,
+        news,
+        settings,
+        inquiries,
+        createdInBrowser: new Date().toISOString()
+      });
+      const warning = result.warnings.length ? ` ${result.warnings.join(' ')}` : '';
+      setToastMessage(`${tx('Backup downloaded:', 'បានទាញយកឯកសារបម្រុងទុក៖')} ${result.filename} · ${result.files} ${tx('images', 'រូបភាព')} (${formatStorageBytes(result.bytes)}).${warning}`);
+    } catch (error) {
+      setToastMessage(`${tx('Backup failed:', 'ការបម្រុងទុកបរាជ័យ៖')} ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
   const analyticsPageName = (page: string) => ({
     home: tx('Home', 'ទំព័រដើម'),
     about: tx('About', 'អំពីយើង'),
@@ -1643,7 +1679,7 @@ export default function App() {
                 ].map((item) => (
                   <button key={item.id} type="button" onClick={() => setActiveAdminSection(item.id)} aria-current={activeAdminSection === item.id ? 'page' : undefined}
                     className={`mb-1 flex w-full items-center justify-between gap-2 rounded-2xl px-3 py-3 text-left transition ${activeAdminSection === item.id ? 'bg-green-700 text-white shadow-sm' : 'text-slate-700 hover:bg-green-50'}`}>
-                    <span className="min-w-0"><span className="block text-sm font-bold">{item.label}</span><span className={`mt-0.5 block text-[11px] ${activeAdminSection === item.id ? 'text-green-100' : 'text-slate-500'}`}>{item.detail}</span></span>
+                    <span className="flex min-w-0 items-start gap-2.5">{React.createElement(adminSectionIcons[item.id as keyof typeof adminSectionIcons], { className: `mt-0.5 h-4 w-4 shrink-0 ${activeAdminSection === item.id ? 'text-green-100' : 'text-green-700'}`, 'aria-hidden': true })}<span className="min-w-0"><span className="block text-sm font-bold">{item.label}</span><span className={`mt-0.5 block text-[11px] ${activeAdminSection === item.id ? 'text-green-100' : 'text-slate-500'}`}>{item.detail}</span></span></span>
                     <span aria-hidden="true" className="text-lg leading-none">›</span>
                   </button>
                 ))}
@@ -1954,9 +1990,17 @@ export default function App() {
                   <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><HardDrive className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Data & storage health', 'សុខភាពទិន្នន័យ និងឃ្លាំងផ្ទុក')}</h2>
                   <p className="mt-1 text-sm text-slate-500">{tx('Check database setup and see how many pictures are stored in Supabase.', 'ពិនិត្យការរៀបចំមូលដ្ឋានទិន្នន័យ និងចំនួនរូបភាពដែលរក្សាទុកក្នុង Supabase។')}</p>
                 </div>
+                <button type="button" onClick={() => void handleDownloadBackup()} disabled={backupLoading || !supabaseClient} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-wait disabled:opacity-60">
+                  <Download className="h-4 w-4" aria-hidden="true" />{backupLoading ? tx('Preparing backup…', 'កំពុងរៀបចំការបម្រុងទុក…') : tx('Download backup', 'ទាញយកការបម្រុងទុក')}
+                </button>
                 <button type="button" onClick={() => void refreshDataHealth()} disabled={dataHealthLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
                   <RefreshCw className={`h-4 w-4 ${dataHealthLoading ? 'animate-spin' : ''}`} aria-hidden="true" />{dataHealthLoading ? tx('Checking…', 'កំពុងពិនិត្យ…') : tx('Check again', 'ពិនិត្យម្ដងទៀត')}
                 </button>
+              </div>
+
+              <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-950">
+                <p className="font-bold">{tx('Keep a copy of your website data', 'រក្សាទុកច្បាប់ចម្លងទិន្នន័យគេហទំព័រ')}</p>
+                <p className="mt-1 text-green-900">{tx('The backup file includes products, website content, traffic history, local admin records, and all images in both Supabase image buckets. Save the downloaded file somewhere safe.', 'ឯកសារបម្រុងទុកមានផលិតផល មាតិកាគេហទំព័រ ប្រវត្តិចរាចរណ៍ ទិន្នន័យអ្នកគ្រប់គ្រងក្នុងកម្មវិធីរុករក និងរូបភាពទាំងអស់ក្នុងឃ្លាំង Supabase ទាំងពីរ។ សូមរក្សាទុកឯកសារដែលបានទាញយកនៅកន្លែងមានសុវត្ថិភាព។')}</p>
               </div>
 
               {dataHealthError && <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{dataHealthError}</p>}
