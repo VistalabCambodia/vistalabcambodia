@@ -252,6 +252,7 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [newProductImage, setNewProductImage] = useState('');
+  const [newProductBrand, setNewProductBrand] = useState(() => initialBrands[0]?.name ?? '');
 
   useEffect(() => {
     if (!supabaseClient) return;
@@ -2151,10 +2152,11 @@ export default function App() {
               >
                 <input required name="name_en" placeholder={tx('Product Name (English)', 'ឈ្មោះផលិតផល (អង់គ្លេស)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
                 <input name="name_kh" placeholder={tx('Product Name (Khmer)', 'ឈ្មោះផលិតផល (ខ្មែរ)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
-                <select name="brand" className="border border-slate-300 p-2.5 rounded-xl text-xs bg-white">
+                <select name="brand" value={newProductBrand} onChange={(event) => setNewProductBrand(event.target.value)} className="border border-slate-300 p-2.5 rounded-xl text-xs bg-white">
                   {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
-                <select name="category" className="border border-slate-300 p-2.5 rounded-xl text-xs bg-white">
+                <ImageUpload label="Country flag for selected brand" lang={lang} image={brands.find((brand) => brand.name === newProductBrand)?.flagImage} onChange={(flagImage) => setBrands((current) => current.map((brand) => brand.name === newProductBrand ? { ...brand, flagImage } : brand))} />
+              <select name="category" className="border border-slate-300 p-2.5 rounded-xl text-xs bg-white">
                   <option value="Personal Care">{localizedCategory('Personal Care')}</option>
                   <option value="Baby Care">{localizedCategory('Baby Care')}</option>
                   <option value="Beauty & Body Care">{localizedCategory('Beauty & Body Care')}</option>
@@ -2206,6 +2208,10 @@ export default function App() {
                     {productCategories.filter((category) => category !== 'All').map((category) => <option key={category} value={category}>{category}</option>)}
                   </select>
                   <input aria-label="Product origin" placeholder={tx('Country of origin', 'ប្រទេសដើម')} value={editingProduct.origin} onChange={(event) => setEditingProduct({ ...editingProduct, origin: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
+                  <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-white p-3">
+                    <ImageUpload label="Country flag for this brand" lang={lang} image={brands.find((brand) => brand.name === editingProduct.brand)?.flagImage} onChange={(flagImage) => setBrands((current) => current.map((brand) => brand.name === editingProduct.brand ? { ...brand, flagImage } : brand))} />
+                    <p className="mt-2 text-xs text-slate-500">This flag is shared by every product from the selected brand and saves with website content.</p>
+                  </div>
                   <input aria-label="Product sizes" placeholder={tx('Sizes / packaging', 'ទំហំ / ការវេចខ្ចប់')} value={editingProduct.sizes} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <textarea aria-label="Product description" placeholder={tx('Product description (English)', 'ការពិពណ៌នាអំពីផលិតផល (អង់គ្លេស)')} rows={3} value={editingProduct.specs} onChange={(event) => setEditingProduct({ ...editingProduct, specs: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <textarea aria-label="Product description in Khmer" placeholder={tx('Product description (Khmer)', 'ការពិពណ៌នាអំពីផលិតផល (ខ្មែរ)')} rows={3} value={editingProduct.specs_kh || ''} onChange={(event) => setEditingProduct({ ...editingProduct, specs_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
