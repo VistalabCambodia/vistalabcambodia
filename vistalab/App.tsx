@@ -309,6 +309,7 @@ export default function App() {
   
   // Modals & Drawers
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productImageZoomOpen, setProductImageZoomOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
@@ -932,8 +933,8 @@ export default function App() {
                     .slice(0, 4)
                     .map((prod) => (
                       <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group">
-                        <div className={`h-48 ${prod.imageBg} relative p-6 flex flex-col items-center justify-center text-center`}>
-                          {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full object-cover" />}
+                        <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-40 w-full flex-col items-center justify-center bg-white p-3 text-center sm:h-48 ${prod.imageBg}`}>
+                          {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-contain p-2 sm:p-3" />}
                           <span className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm text-slate-800 text-xs font-extrabold px-2.5 py-1 rounded-md border border-slate-200">
                             {prod.brand}
                           </span>
@@ -944,7 +945,7 @@ export default function App() {
                             {localizedProductBadge(prod)}
                           </span>}
                           {!prod.image && <span className="text-xs font-semibold text-slate-500 mt-2">{tx('Imported from', 'នាំចូលពី')} {prod.origin === 'Malaysia' && lang === 'KH' ? 'ម៉ាឡេស៊ី' : prod.origin}</span>}
-                        </div>
+                        </button>
                         <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
                           <div>
                             <span className="text-[11px] font-bold text-green-600 uppercase tracking-wide">{localizedCategory(prod.category)}</span>
@@ -1292,8 +1293,8 @@ export default function App() {
                 })
                 .map((prod) => (
                   <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
-                    <div className={`h-28 sm:h-36 lg:h-44 ${prod.imageBg} relative p-2 sm:p-4 flex flex-col items-center justify-center text-center`}>
-                      {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full object-cover" />}
+                    <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-36 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
+                      {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-contain p-2 sm:p-3" />}
                       <span className="absolute top-2 left-2 max-w-[calc(100%-4.5rem)] truncate bg-white/90 text-slate-900 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded">
                         {prod.brand}
                       </span>
@@ -1301,7 +1302,7 @@ export default function App() {
                         <CountryFlag country={prod.origin} image={brands.find((brand) => brand.name === prod.brand)?.flagImage} />
                       </span>
                       {!prod.image && <span className="text-2xl font-black text-slate-600/50 uppercase">{localizedProductBadge(prod)}</span>}
-                    </div>
+                    </button>
                     <div className="min-w-0 p-3 sm:p-5 flex-grow flex flex-col justify-between gap-3 sm:gap-4">
                       <div>
                         <span className="text-[8px] sm:text-[10px] font-extrabold text-green-600 uppercase line-clamp-1">{localizedCategory(prod.category)}</span>
@@ -2241,10 +2242,15 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
 
-            <div className={`h-48 ${selectedProduct.imageBg} rounded-2xl flex items-center justify-center text-2xl font-black text-slate-600/50 uppercase`}>
-              {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl bg-white object-contain" /> : localizedProductBadge(selectedProduct)}
-            </div>
-
+            <button type="button" onClick={() => selectedProduct.image && setProductImageZoomOpen(true)} aria-label="Zoom product image" className={`flex h-56 w-full items-center justify-center overflow-hidden rounded-2xl bg-white text-2xl font-black text-slate-600/50 uppercase sm:h-72 ${selectedProduct.image ? 'cursor-zoom-in' : ''}`}>
+              {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl bg-white object-contain p-2" /> : localizedProductBadge(selectedProduct)}
+            </button>
+            {productImageZoomOpen && selectedProduct.image && (
+              <div role="dialog" aria-modal="true" aria-label={`${localizedProductName(selectedProduct)} image`} className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/90 p-4" onClick={() => setProductImageZoomOpen(false)}>
+                <button type="button" onClick={() => setProductImageZoomOpen(false)} aria-label="Close image zoom" className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900">Close</button>
+                <img src={selectedProduct.image} alt={localizedProductName(selectedProduct)} className="max-h-[90vh] max-w-[95vw] cursor-zoom-out object-contain" onClick={(event) => event.stopPropagation()} />
+              </div>
+            )}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span title={selectedProduct.origin} className="flex h-8 min-w-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm">
