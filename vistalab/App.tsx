@@ -106,6 +106,16 @@ function ProductDescription({ text, className }: { text: string; className: stri
   return <p className={`${className} whitespace-pre-line`}>{items[0] ?? text}</p>;
 }
 
+function ProductDescriptionPreview({ text, className }: { text: string; className: string }) {
+  const plainText = /<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)
+    ? Array.from(new DOMParser().parseFromString(sanitizeDescriptionHtml(text), 'text/html').body.childNodes)
+        .map((node) => node.textContent ?? '').join(' ')
+    : text.split(/[\n•]+/u).map((line) => line.trim().replace(/^[-*]\s*/u, '')).join(' ');
+  const preview = plainText.replace(/\s+/gu, ' ').trim();
+  if (!preview) return null;
+  return <p className={`${className} line-clamp-2`}>{preview}</p>;
+}
+
 function normalizeProductDescriptionInput(text: string): string {
   if (/<\/?[a-z][^>]*>/iu.test(text)) return text;
   return text.replace(/\s*•\s*/gu, '\n').replace(/^\s*[-*]\s*/gmu, '');
@@ -1068,7 +1078,7 @@ export default function App() {
                             <h4 className="text-base font-bold text-slate-900 group-hover:text-green-900 transition-colors line-clamp-2 mt-1">
                               {localizedProductName(prod)}
                             </h4>
-                            <ProductDescription text={localizedProductSpecs(prod)} className="mt-2 text-xs text-slate-500" />
+                            <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-2 text-xs text-slate-500" />
                           </div>
                           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                             <button
@@ -1425,7 +1435,7 @@ export default function App() {
                         <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-1 line-clamp-2 break-words">
                           {localizedProductName(prod)}
                         </h3>
-                        <ProductDescription text={localizedProductSpecs(prod)} className="mt-1.5 break-words text-[10px] text-slate-500 sm:mt-2 sm:text-xs line-clamp-3" />
+                        <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 break-words text-[10px] text-slate-500 sm:mt-2 sm:text-xs" />
                       </div>
                       <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center">
                         <button
