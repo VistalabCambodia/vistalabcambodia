@@ -2297,29 +2297,21 @@ export default function App() {
                 <img src={selectedProduct.image} alt={localizedProductName(selectedProduct)} className="max-h-[90vh] max-w-[95vw] cursor-zoom-out object-contain" onClick={(event) => event.stopPropagation()} />
               </div>
             )}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span title={selectedProduct.origin} className="flex h-8 min-w-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm">
                   <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
                 </span>
                 <span className="text-xs font-extrabold text-green-600 uppercase">{selectedProduct.brand} • {localizedCategory(selectedProduct.category)}</span>
               </div>
-              <h3 className="text-2xl font-extrabold leading-tight text-slate-900">{localizedProductName(selectedProduct)}</h3>
-              <section aria-label={tx('Product details', 'ព័ត៌មានលម្អិតអំពីផលិតផល')} className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-                <ProductDescription text={localizedProductSpecs(selectedProduct)} className="text-sm leading-7 text-slate-700" />
-              </section>
+              <h3 className="text-xl font-bold text-slate-900">{localizedProductName(selectedProduct)}</h3>
+              <ProductDescription text={localizedProductSpecs(selectedProduct)} className="text-xs text-slate-600" />
             </div>
 
-            <dl className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm sm:grid-cols-2 sm:p-5">
-              <div className="space-y-1">
-                <dt className="text-xs font-semibold text-slate-500">{tx('Country of Origin', 'ប្រទេសដើម')}</dt>
-                <dd className="font-semibold text-slate-800">{tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-xs font-semibold text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</dt>
-                <dd className="font-semibold text-slate-800">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</dd>
-              </div>
-            </dl>
+            <div className="bg-slate-50 p-4 rounded-xl text-xs space-y-1">
+              <p><span className="font-bold">{tx('Country of Origin:', 'ប្រទេសដើម៖')}</span> {tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
+              <p><span className="font-bold">{tx('Sizes / Packaging:', 'ទំហំ / ការវេចខ្ចប់៖')}</span> {selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+            </div>
 
         </Modal>
       )}
