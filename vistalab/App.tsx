@@ -232,6 +232,8 @@ function repairKhmerMojibake(value: string): string {
 export default function App() {
   const [lang, setLang] = useState<'EN' | 'KH'>('EN');
   const [languageLoading, setLanguageLoading] = useState(false);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
   const [currentView, setCurrentView] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1' ? 'admin' : 'home'); // home, about, brands, products, distribution, partner, seller, news, contact, admin
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [adminAuthReady, setAdminAuthReady] = useState(false);
@@ -542,6 +544,33 @@ export default function App() {
 
   const t = translations[lang];
   const tx = (english: string, khmer: string) => lang === 'KH' ? khmer : english;
+  const heroSlides = [
+    {
+      src: settings.heroImage || `${import.meta.env.BASE_URL}images/hero-warehouse-banner.jpg`,
+      alt: 'VistaLab Cambodia distribution warehouse',
+      title: tx('VistaLab Cambodia', 'VistaLab Cambodia'),
+      contain: false
+    },
+    ...products.filter((product) => product.image).slice(0, 5).map((product) => ({
+      src: product.image!,
+      alt: lang === 'KH' ? product.name_kh : product.name_en,
+      title: lang === 'KH' ? product.name_kh : product.name_en,
+      contain: true
+    }))
+  ];
+
+  useEffect(() => {
+    if (currentView !== 'home' || heroSlides.length < 2 || heroPaused) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setActiveHeroSlide((index) => (index + 1) % heroSlides.length);
+    }, 3400);
+    return () => window.clearInterval(timer);
+  }, [currentView, heroSlides.length, heroPaused]);
+
+  useEffect(() => {
+    setActiveHeroSlide((index) => index % Math.max(1, heroSlides.length));
+  }, [heroSlides.length]);
 
   const handleDownloadBackup = async () => {
     if (!adminAuthenticated || backupLoading) return;
@@ -967,13 +996,34 @@ export default function App() {
           <div className="space-y-10 sm:space-y-16 sm:space-y-24 pb-16">
             {/* HERO POSTER */}
             <section className="site-hero-friendly overflow-hidden px-4 py-4 sm:px-8 sm:py-8">
-              <div style={{ width: 'min(100%, calc(100vw - 2rem))', minWidth: 0 }} className="relative mx-auto min-h-0 w-full min-w-0 max-w-7xl overflow-hidden rounded-[2rem] bg-green-50 shadow-xl sm:min-h-[460px]">
-                <img
-                  src={settings.heroImage || `${import.meta.env.BASE_URL}images/hero-warehouse-banner.jpg`}
-                  alt="VistaLab Cambodia distribution warehouse"
-                  className="poster-image absolute inset-x-0 top-0 h-[220px] w-full object-cover sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[62%]"
-                />
-                <div aria-hidden="true" className="absolute inset-x-0 top-[125px] h-[110px] bg-gradient-to-b from-transparent to-green-50 sm:inset-y-0 sm:left-1/3 sm:right-0 sm:top-0 sm:h-auto sm:bg-gradient-to-r sm:from-green-50 sm:via-green-50/80 sm:to-transparent" />
+              <div
+                style={{ width: 'min(100%, calc(100vw - 2rem))', minWidth: 0 }}
+                className="relative mx-auto min-h-0 w-full min-w-0 max-w-7xl overflow-hidden rounded-[2rem] bg-green-50 shadow-xl sm:min-h-[460px]"
+                onMouseEnter={() => setHeroPaused(true)}
+                onMouseLeave={() => setHeroPaused(false)}
+                onFocusCapture={() => setHeroPaused(true)}
+                onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHeroPaused(false); }}
+              >
+                {heroSlides.map((slide, index) => (
+                  <img
+                    key={`${slide.src}-${index}`}
+                    src={slide.src}
+                    alt={slide.alt}
+                    aria-hidden={index !== activeHeroSlide}
+                    className={`hero-carousel-slide absolute inset-x-0 top-0 h-[220px] w-full sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[62%] ${slide.contain ? 'bg-white object-contain p-6 sm:p-10' : 'object-cover'} ${index === activeHeroSlide ? 'is-active' : ''}`}
+                  />
+                ))}
+                <div aria-hidden="true" className="absolute inset-x-0 top-[125px] z-[1] h-[110px] bg-gradient-to-b from-transparent to-green-50 sm:inset-y-0 sm:left-1/3 sm:right-0 sm:top-0 sm:h-auto sm:bg-gradient-to-r sm:from-green-50 sm:via-green-50/80 sm:to-transparent" />
+                {heroSlides.length > 1 && (
+                  <>
+                    {activeHeroSlide > 0 && <div className="absolute bottom-4 right-4 z-20 max-w-[45%] truncate rounded-lg bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm sm:bottom-6 sm:right-8 sm:text-sm">{heroSlides[activeHeroSlide].title}</div>}
+                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:left-auto sm:right-8 sm:bottom-3 sm:translate-x-0" role="group" aria-label={tx('Poster slides', 'ផ្ទាំងរូបភាព')}>
+                      {heroSlides.map((slide, index) => (
+                        <button key={`${slide.src}-dot-${index}`} type="button" aria-label={tx(`Show poster ${index + 1}`, `បង្ហាញផ្ទាំងរូបភាពទី ${index + 1}`)} aria-pressed={index === activeHeroSlide} onClick={() => setActiveHeroSlide(index)} className={`h-2.5 rounded-full border border-white shadow-sm transition-all ${index === activeHeroSlide ? 'w-6 bg-green-700' : 'w-2.5 bg-white/80'}`} />
+                      ))}
+                    </div>
+                  </>
+                )}
                 <div style={{ width: '100%', minWidth: 0 }} className="poster-copy relative z-10 flex min-h-0 w-full min-w-0 max-w-2xl flex-col justify-end px-4 pb-6 pt-[232px] sm:min-h-[460px] sm:justify-center sm:px-10 sm:py-12 lg:px-14">
                   <div className="mb-3 inline-flex w-fit max-w-full items-center gap-2 whitespace-normal rounded-full border border-green-200 bg-white/90 px-3 py-1.5 text-xs font-bold text-green-800 shadow-sm sm:text-sm">
                     <Sparkles className="h-4 w-4 text-green-600" />
