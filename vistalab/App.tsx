@@ -103,10 +103,6 @@ function ProductDescription({ text, className }: { text: string; className: stri
   return <p className={`${className} whitespace-pre-line`}>{items[0] ?? text}</p>;
 }
 
-function normalizeProductDescriptionInput(text: string): string {
-  return text.replace(/\s*•\s*/gu, '\n').replace(/^\s*[-*]\s*/gmu, '');
-}
-
 const windows1252SpecialCharacters = [
   '\u20ac', '\u0081', '\u201a', '\u0192', '\u201e', '\u2026', '\u2020', '\u2021',
   '\u02c6', '\u2030', '\u0160', '\u2039', '\u0152', '\u008d', '\u017d', '\u008f',
@@ -2176,8 +2172,8 @@ export default function App() {
                     category: String(fd.get('category') || ''),
                     origin: "Malaysia",
                     sizes: String(fd.get('sizes') || ''),
-                    specs: normalizeProductDescriptionInput(String(fd.get('specs') || '')),
-                    specs_kh: normalizeProductDescriptionInput(String(fd.get('specs_kh') || '')),
+                    specs: String(fd.get('specs') || ''),
+                    specs_kh: String(fd.get('specs_kh') || ''),
                     featured: false,
                     imageBg: "bg-green-100",
                     imageBadge: "New",
@@ -2203,8 +2199,8 @@ export default function App() {
                   <option value="Household Care">{localizedCategory('Household Care')}</option>
                   <option value="Food & Confectionery">{localizedCategory('Food & Confectionery')}</option>
                 </select>
-                <textarea required name="specs" rows={3} placeholder={tx('Description (English) — one item per line, no bullet marks needed', 'ការពិពណ៌នា (អង់គ្លេស) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                <textarea name="specs_kh" rows={3} placeholder={tx('Description (Khmer) — one item per line, no bullet marks needed', 'ការពិពណ៌នា (ខ្មែរ) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                <textarea required name="specs" rows={3} placeholder={tx('Description (English) — one list item per line', 'ការពិពណ៌នា (អង់គ្លេស) — មួយធាតុក្នុងមួយបន្ទាត់')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                <textarea name="specs_kh" rows={3} placeholder={tx('Description (Khmer) — one list item per line', 'ការពិពណ៌នា (ខ្មែរ) — មួយធាតុក្នុងមួយបន្ទាត់')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                 <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
                   {tx('Pack size / packaging', 'ទំហំ / ការវេចខ្ចប់')}
                   <input name="sizes" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
@@ -2227,7 +2223,7 @@ export default function App() {
                   <div key={product.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 p-3">
                     {product.image ? <img src={product.image} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${product.imageBg} text-[9px] font-bold text-slate-600`}>{product.imageBadge}</div>}
                     <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-800">{product.name_en}</span>
-                    <button type="button" onClick={() => setEditingProduct({ ...product, specs: normalizeProductDescriptionInput(product.specs), specs_kh: product.specs_kh ? normalizeProductDescriptionInput(product.specs_kh) : undefined })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
+                    <button type="button" onClick={() => setEditingProduct({ ...product })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
                   </div>
                 ))}
               </div>
@@ -2260,8 +2256,8 @@ export default function App() {
                     {tx('Pack size / packaging', 'ទំហំ / ការវេចខ្ចប់')}
                     <input aria-label="Pack size / packaging" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} value={editingProduct.sizes ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
                   </label>
-                  <textarea aria-label="Product description" placeholder={tx('Product description (English) — one item per line, no bullet marks needed', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} rows={4} value={editingProduct.specs} onChange={(event) => setEditingProduct({ ...editingProduct, specs: normalizeProductDescriptionInput(event.target.value) })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                  <textarea aria-label="Product description in Khmer" placeholder={tx('Product description (Khmer) — one item per line, no bullet marks needed', 'ការពិពណ៌នាផលិតផល (ខ្មែរ) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} rows={4} value={editingProduct.specs_kh || ''} onChange={(event) => setEditingProduct({ ...editingProduct, specs_kh: normalizeProductDescriptionInput(event.target.value) })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                  <textarea aria-label="Product description" placeholder={tx('Product description (English) — use a new line for each list item', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស) — សរសេរធាតុនីមួយៗលើបន្ទាត់ថ្មី')} rows={4} value={editingProduct.specs} onChange={(event) => setEditingProduct({ ...editingProduct, specs: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                  <textarea aria-label="Product description in Khmer" placeholder={tx('Product description (Khmer) — use a new line for each list item', 'ការពិពណ៌នាផលិតផល (ខ្មែរ) — សរសេរធាតុនីមួយៗលើបន្ទាត់ថ្មី')} rows={4} value={editingProduct.specs_kh || ''} onChange={(event) => setEditingProduct({ ...editingProduct, specs_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={editingProduct.image} onChange={(image) => setEditingProduct({ ...editingProduct, image })} crop aspectRatio={4 / 3} />
                   <div className="flex gap-2 sm:col-span-2">
                     <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Product', 'រក្សាទុកផលិតផល')}</button>
