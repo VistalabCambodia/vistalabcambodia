@@ -227,7 +227,7 @@ body,
 
 @media (min-width: 640px) {
   .site-hero-friendly > [aria-hidden="true"]:nth-child(2) {
-    background-image: linear-gradient(90deg, #f0f8f1 0%, #f0f8f1 34%, rgb(240 248 241 / 82%) 49%, rgb(240 248 241 / 34%) 65%, rgb(240 248 241 / 0%) 78%) !important;
+    background-image: linear-gradient(90deg, #f0f8f1 0%, #f0f8f1 34%, rgb(240 248 241 / 42%) 49%, rgb(240 248 241 / 14%) 65%, rgb(240 248 241 / 0%) 78%) !important;
   }
 }
 

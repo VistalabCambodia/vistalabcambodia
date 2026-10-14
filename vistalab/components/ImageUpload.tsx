@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 type CropImage = { url: string; width: number; height: number };
 type Pan = { x: number; y: number };
 
-function compressImage(file: File): Promise<string> {
+function compressImage(file: File, highQuality = false): Promise<string> {
   if (!file.type.startsWith('image/')) return Promise.reject(new Error('Choose an image file.'));
   if (file.size > 12 * 1024 * 1024) return Promise.reject(new Error('Choose an image smaller than 12 MB.'));
 
@@ -11,21 +11,30 @@ function compressImage(file: File): Promise<string> {
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
-      const maxSide = 720;
-      const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
       const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
       const context = canvas.getContext('2d');
       if (!context) {
         URL.revokeObjectURL(objectUrl);
         reject(new Error('Could not process this image.'));
         return;
       }
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/webp', 0.7);
       URL.revokeObjectURL(objectUrl);
-      if (dataUrl.length > 280_000) {
+      const limits = highQuality ? [1920, 1600, 1280, 960] : [720];
+      const qualities = highQuality ? [0.9, 0.84, 0.78, 0.72] : [0.7];
+      const maxDataUrlLength = highQuality ? 2_200_000 : 280_000;
+      let dataUrl = '';
+      for (const size of limits) {
+        const scale = Math.min(1, size / Math.max(image.naturalWidth, image.naturalHeight));
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        for (const quality of qualities) {
+          dataUrl = canvas.toDataURL('image/webp', quality);
+          if (dataUrl.length <= maxDataUrlLength) break;
+        }
+        if (dataUrl.length <= maxDataUrlLength) break;
+      }
+      if (dataUrl.length > maxDataUrlLength) {
         reject(new Error('This image is still too large after compression. Try a smaller image.'));
         return;
       }
@@ -46,13 +55,14 @@ function getImageFit(width: number, height: number, zoom: number, frameRatio: nu
   return { width: fitWidth, height: fitHeight };
 }
 
-export function ImageUpload({ label, image, lang, onChange, crop = false, aspectRatio = 2 }: {
+export function ImageUpload({ label, image, lang, onChange, crop = false, aspectRatio = 2, highQuality = false }: {
   label: string;
   image?: string;
   lang: 'EN' | 'KH';
   onChange: (image: string) => void | Promise<void>;
   crop?: boolean;
   aspectRatio?: number;
+  highQuality?: boolean;
 }) {
   const [error, setError] = useState('');
   const [cropImage, setCropImage] = useState<CropImage | null>(null);
@@ -143,7 +153,7 @@ export function ImageUpload({ label, image, lang, onChange, crop = false, aspect
                 };
                 probe.src = url;
               } else {
-                onChange(await compressImage(file));
+                onChange(await compressImage(file, highQuality));
               }
             } catch (uploadError) {
               const message = uploadError instanceof Error ? uploadError.message : 'Image upload failed.';
