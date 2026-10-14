@@ -2404,7 +2404,7 @@ export default function App() {
       {}
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <Modal label="Product details" onClose={() => setSelectedProduct(null)} className="relative animate-fadeIn space-y-4 sm:space-y-6">
+        <Modal label="Product details" onClose={() => setSelectedProduct(null)} size="xl" className="relative animate-fadeIn space-y-5 sm:space-y-6">
             <button
               onClick={() => setSelectedProduct(null)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800"
@@ -2421,22 +2421,39 @@ export default function App() {
                 <img src={selectedProduct.image} alt={localizedProductName(selectedProduct)} className="max-h-[90vh] max-w-[95vw] cursor-zoom-out object-contain" onClick={(event) => event.stopPropagation()} />
               </div>
             )}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span title={selectedProduct.origin} className="flex h-8 min-w-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span title={selectedProduct.origin} className="flex h-9 min-w-14 items-center justify-center rounded-xl border border-slate-200 bg-white px-1.5 shadow-sm">
                   <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
                 </span>
-                <span className="text-xs font-extrabold text-green-600 uppercase">{selectedProduct.brand} • {localizedCategory(selectedProduct.category)}</span>
+                <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(selectedProduct.category)}</span>
               </div>
-              <h3 className="text-xl font-bold text-slate-900">{localizedProductName(selectedProduct)}</h3>
-              <ProductDescription text={localizedProductSpecs(selectedProduct)} className="text-sm leading-7 text-slate-700 sm:text-base" />
+              <h3 className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">{localizedProductName(selectedProduct)}</h3>
+              <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
+                <ProductDescription text={localizedProductSpecs(selectedProduct)} className="px-4 py-3 text-base leading-8 sm:px-5 sm:text-lg" />
+              </div>
             </div>
 
-            <div className="space-y-2 rounded-2xl bg-slate-50 p-5 text-sm leading-relaxed text-slate-800 sm:text-base">
-              <p><span className="font-extrabold text-slate-900">{tx('Country of Origin:', 'ប្រទេសដើម៖')}</span> {tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
-              <p><span className="font-extrabold text-slate-900">{tx('Sizes / Packaging:', 'ទំហំ / ការវេចខ្ចប់៖')}</span> {selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+            <div className="rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-slate-50 p-4 sm:p-5">
+              <h4 className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-green-800">{tx('Product information', 'ព័ត៌មានផលិតផល')}</h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white bg-white/90 p-3.5 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Country of Origin', 'ប្រទេសដើម')}</p>
+                  <p className="mt-1.5 font-extrabold text-slate-900">{tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
+                </div>
+                <div className="rounded-xl border border-white bg-white/90 p-3.5 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</p>
+                  <p className="mt-1.5 font-extrabold text-slate-900">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+                </div>
+              </div>
             </div>
 
+            <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
+              <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-green-800"><MessageCircle className="h-4 w-4" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
+              <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 text-green-700" />Telegram</a>
+              <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
+            </div>
         </Modal>
       )}
 
