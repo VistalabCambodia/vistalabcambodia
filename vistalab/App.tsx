@@ -96,6 +96,9 @@ function formatStorageBytes(bytes: number): string {
 }
 
 function ProductDescription({ text, className }: { text: string; className: string }) {
+  if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)) {
+    return <div className={`${className} space-y-1 [&_p]:m-0 [&_div]:m-0 [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold`} dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(text) }} />;
+  }
   const items = text.split(/[\n•]+/u).map((item) => item.trim().replace(/^[-*]\s*/u, '')).filter(Boolean);
   if (items.length > 1) {
     return <div className={`${className} space-y-1`}>{items.map((item, index) => <p key={`${index}-${item}`}>{item}</p>)}</div>;
@@ -104,7 +107,79 @@ function ProductDescription({ text, className }: { text: string; className: stri
 }
 
 function normalizeProductDescriptionInput(text: string): string {
+  if (/<\/?[a-z][^>]*>/iu.test(text)) return text;
   return text.replace(/\s*•\s*/gu, '\n').replace(/^\s*[-*]\s*/gmu, '');
+}
+
+const allowedDescriptionTags = new Set(['P', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U', 'BR', 'H2', 'H3']);
+
+function sanitizeDescriptionHtml(html: string): string {
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const serialize = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.textContent ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const element = node as HTMLElement;
+    const children = Array.from(element.childNodes).map(serialize).join('');
+    if (!allowedDescriptionTags.has(element.tagName)) return children;
+    const tag = element.tagName.toLowerCase();
+    if (tag === 'br') return '<br />';
+    return `<${tag}>${children}</${tag}>`;
+  };
+  return Array.from(document.body.childNodes).map(serialize).join('');
+}
+
+function descriptionToEditorHtml(value: string): string {
+  if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(value)) return sanitizeDescriptionHtml(value);
+  const lines = value.split(/[\n•]+/u).map((line) => line.trim().replace(/^[-*]\s*/u, '')).filter(Boolean);
+  return lines.map((line) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`).join('') || '<p><br /></p>';
+}
+
+function ProductDescriptionEditor({ value, onChange, label, placeholder }: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  placeholder: string;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && document.activeElement !== editor) editor.innerHTML = descriptionToEditorHtml(value);
+  }, [value]);
+
+  const applyFormat = (command: 'bold' | 'italic' | 'underline' | 'formatBlock', format?: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    document.execCommand(command, false, format);
+    onChange(sanitizeDescriptionHtml(editor.innerHTML));
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-300 bg-white sm:col-span-2">
+      <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 p-1.5" role="toolbar" aria-label={`${label} formatting`}>
+        <button type="button" aria-label="Bold" title="Bold" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat('bold')} className="h-8 w-8 rounded-md font-black text-slate-700 hover:bg-white">B</button>
+        <button type="button" aria-label="Italic" title="Italic" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat('italic')} className="h-8 w-8 rounded-md font-serif italic text-slate-700 hover:bg-white">I</button>
+        <button type="button" aria-label="Underline" title="Underline" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat('underline')} className="h-8 w-8 rounded-md font-semibold text-slate-700 underline hover:bg-white">U</button>
+        <span className="mx-1 h-5 border-l border-slate-300" aria-hidden="true" />
+        <button type="button" aria-label="Heading" title="Heading" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat('formatBlock', 'h3')} className="h-8 rounded-md px-2 text-xs font-bold text-slate-700 hover:bg-white">H</button>
+        <button type="button" aria-label="Paragraph" title="Paragraph" onMouseDown={(event) => event.preventDefault()} onClick={() => applyFormat('formatBlock', 'p')} className="h-8 rounded-md px-2 text-xs text-slate-700 hover:bg-white">¶</button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label={label}
+        aria-multiline="true"
+        data-placeholder={placeholder}
+        onInput={(event) => onChange(sanitizeDescriptionHtml(event.currentTarget.innerHTML))}
+        className="min-h-24 whitespace-pre-wrap p-3 text-xs leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 [&_h3]:my-1 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1"
+      />
+    </div>
+  );
 }
 
 const windows1252SpecialCharacters = [
@@ -280,6 +355,8 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [newProductImage, setNewProductImage] = useState('');
+  const [newProductSpecs, setNewProductSpecs] = useState('');
+  const [newProductSpecsKh, setNewProductSpecsKh] = useState('');
   const [newProductBrand, setNewProductBrand] = useState(() => initialBrands[0]?.name ?? '');
 
   useEffect(() => {
@@ -2167,6 +2244,11 @@ export default function App() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  const descriptionText = (html: string) => html.replace(/<[^>]*>/gu, '').replace(/&nbsp;/gu, ' ').trim();
+                  if (!descriptionText(newProductSpecs)) {
+                    triggerToast(tx('Please enter the product description.', 'សូមបញ្ចូលការពិពណ៌នាផលិតផល។'));
+                    return;
+                  }
                   const fd = new FormData(e.currentTarget);
                   const newP = {
                     id: `p-${Date.now()}`,
@@ -2176,8 +2258,8 @@ export default function App() {
                     category: String(fd.get('category') || ''),
                     origin: "Malaysia",
                     sizes: String(fd.get('sizes') || ''),
-                    specs: normalizeProductDescriptionInput(String(fd.get('specs') || '')),
-                    specs_kh: normalizeProductDescriptionInput(String(fd.get('specs_kh') || '')),
+                    specs: newProductSpecs,
+                    specs_kh: newProductSpecsKh,
                     featured: false,
                     imageBg: "bg-green-100",
                     imageBadge: "New",
@@ -2186,6 +2268,8 @@ export default function App() {
                   setProducts((currentProducts) => [newP, ...currentProducts]);
                   e.currentTarget.reset();
                   setNewProductImage('');
+                  setNewProductSpecs('');
+                  setNewProductSpecsKh('');
                   triggerToast(tx('New product added to public catalog!', 'បានបន្ថែមផលិតផលថ្មីទៅក្នុងកាតាឡុកសាធារណៈ!'));
                 }}
                 className="grid grid-cols-1 sm:grid-cols-3 gap-4"
@@ -2203,8 +2287,8 @@ export default function App() {
                   <option value="Household Care">{localizedCategory('Household Care')}</option>
                   <option value="Food & Confectionery">{localizedCategory('Food & Confectionery')}</option>
                 </select>
-                <textarea required name="specs" rows={3} placeholder={tx('Description (English) — one item per line, no bullet marks needed', 'ការពិពណ៌នា (អង់គ្លេស) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                <textarea name="specs_kh" rows={3} placeholder={tx('Description (Khmer) — one item per line, no bullet marks needed', 'ការពិពណ៌នា (ខ្មែរ) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                <ProductDescriptionEditor value={newProductSpecs} onChange={setNewProductSpecs} label={tx('Description (English)', 'ការពិពណ៌នា (អង់គ្លេស)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
+                <ProductDescriptionEditor value={newProductSpecsKh} onChange={setNewProductSpecsKh} label={tx('Description (Khmer)', 'ការពិពណ៌នា (ខ្មែរ)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
                 <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
                   {tx('Pack size / packaging', 'ទំហំ / ការវេចខ្ចប់')}
                   <input name="sizes" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
@@ -2260,8 +2344,8 @@ export default function App() {
                     {tx('Pack size / packaging', 'ទំហំ / ការវេចខ្ចប់')}
                     <input aria-label="Pack size / packaging" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} value={editingProduct.sizes ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
                   </label>
-                  <textarea aria-label="Product description" placeholder={tx('Product description (English) — one item per line, no bullet marks needed', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} rows={4} value={editingProduct.specs} onChange={(event) => setEditingProduct({ ...editingProduct, specs: normalizeProductDescriptionInput(event.target.value) })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
-                  <textarea aria-label="Product description in Khmer" placeholder={tx('Product description (Khmer) — one item per line, no bullet marks needed', 'ការពិពណ៌នាផលិតផល (ខ្មែរ) — មួយធាតុក្នុងមួយបន្ទាត់ មិនចាំបាច់ដាក់សញ្ញាចំណុចទេ')} rows={4} value={editingProduct.specs_kh || ''} onChange={(event) => setEditingProduct({ ...editingProduct, specs_kh: normalizeProductDescriptionInput(event.target.value) })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
+                  <ProductDescriptionEditor value={editingProduct.specs} onChange={(specs) => setEditingProduct({ ...editingProduct, specs })} label={tx('Product description (English)', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
+                  <ProductDescriptionEditor value={editingProduct.specs_kh || ''} onChange={(specs_kh) => setEditingProduct({ ...editingProduct, specs_kh })} label={tx('Product description in Khmer', 'ការពិពណ៌នាផលិតផល (ខ្មែរ)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
                   <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={editingProduct.image} onChange={(image) => setEditingProduct({ ...editingProduct, image })} crop aspectRatio={4 / 3} />
                   <div className="flex gap-2 sm:col-span-2">
                     <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Product', 'រក្សាទុកផលិតផល')}</button>
