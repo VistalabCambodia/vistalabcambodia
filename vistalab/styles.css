@@ -518,19 +518,6 @@ main [class~="text-[11px]"] {
 }
 
 /* A small entrance animation gives the homepage poster some life on load. */
-.hero-carousel-slide {
-  z-index: 0;
-  opacity: 0;
-  transform: translateX(1.25rem);
-  transition: opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  will-change: opacity, transform;
-}
-
-.hero-carousel-slide.is-active {
-  opacity: 1;
-  transform: translateX(0);
-}
-
 .poster-image {
   animation: poster-image-enter 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -607,10 +594,5 @@ main [class~="text-[11px]"] {
   .hero-background-image {
     animation: none;
     transform: scale(1.08);
-  }
-
-  .hero-carousel-slide {
-    transition: none;
-    transform: none;
   }
 }
