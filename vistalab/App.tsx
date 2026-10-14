@@ -134,6 +134,7 @@ function repairKhmerMojibake(value: string): string {
 
 export default function App() {
   const [lang, setLang] = useState<'EN' | 'KH'>('EN');
+  const [languageLoading, setLanguageLoading] = useState(false);
   const [currentView, setCurrentView] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1' ? 'admin' : 'home'); // home, about, brands, products, distribution, partner, seller, news, contact, admin
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [adminAuthReady, setAdminAuthReady] = useState(false);
@@ -154,6 +155,21 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHubId, setSelectedHubId] = useState(distributionHubs[0].id);
+  const languageLoadingTimer = useRef<number | null>(null);
+  const changeLanguage = (nextLang: 'EN' | 'KH') => {
+    if (nextLang === lang || languageLoading) return;
+    if (languageLoadingTimer.current !== null) window.clearTimeout(languageLoadingTimer.current);
+    setLanguageLoading(true);
+    setLang(nextLang);
+    languageLoadingTimer.current = window.setTimeout(() => {
+      setLanguageLoading(false);
+      languageLoadingTimer.current = null;
+    }, 520);
+  };
+
+  useEffect(() => () => {
+    if (languageLoadingTimer.current !== null) window.clearTimeout(languageLoadingTimer.current);
+  }, []);
   const selectedHub = distributionHubs.find((hub) => hub.id === selectedHubId) ?? distributionHubs[0];
   const analyticsWeekEvents = websiteEvents.filter((event) => Date.now() - Date.parse(event.created_at) <= 7 * 24 * 60 * 60 * 1000);
   const popularProducts = Object.values(websiteEvents
@@ -663,9 +679,16 @@ export default function App() {
   return (
     <div
       lang={lang === 'KH' ? 'km' : 'en'}
+      aria-busy={languageLoading}
       className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-green-900 selection:text-white"
       style={lang === 'KH' ? { fontFamily: "'Kantumruy Pro', 'Noto Sans Khmer', sans-serif", fontSynthesis: 'none' } : undefined}
     >
+      {languageLoading && (
+        <div className="language-loading-overlay" role="status" aria-live="polite">
+          <span className="language-loading-spinner" aria-hidden="true" />
+          <span className="language-loading-label">{lang === 'KH' ? 'កំពុងប្តូរភាសា…' : 'Switching language…'}</span>
+        </div>
+      )}
       {}
       {toastMessage && (
         <div className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700">
@@ -697,14 +720,18 @@ export default function App() {
               {/* Language Switcher */}
               <div className="flex items-center bg-green-50 rounded-lg p-0.5 border border-green-200">
                 <button
-                  onClick={() => setLang('KH')}
-                  className={`px-2 py-0.5 text-xs rounded font-bold transition-colors ${lang === 'KH' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+                  onClick={() => changeLanguage('KH')}
+                  disabled={languageLoading}
+                  aria-pressed={lang === 'KH'}
+                  className={`px-2 py-0.5 text-xs rounded font-bold transition-colors disabled:cursor-wait ${lang === 'KH' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
                 >
                   KH
                 </button>
                 <button
-                  onClick={() => setLang('EN')}
-                  className={`px-2 py-0.5 text-xs rounded font-bold transition-colors ${lang === 'EN' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+                  onClick={() => changeLanguage('EN')}
+                  disabled={languageLoading}
+                  aria-pressed={lang === 'EN'}
+                  className={`px-2 py-0.5 text-xs rounded font-bold transition-colors disabled:cursor-wait ${lang === 'EN' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
                 >
                   EN
                 </button>

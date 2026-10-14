@@ -6,6 +6,56 @@ html {
   scroll-behavior: smooth;
 }
 
+.language-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgb(255 255 255 / 72%);
+  color: #246f38;
+  backdrop-filter: blur(3px);
+  animation: language-overlay-in 180ms ease-out both;
+}
+
+.language-loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid #dceedd;
+  border-top-color: #267a3b;
+  border-radius: 50%;
+  animation: language-spinner-turn 700ms linear infinite;
+}
+
+.language-loading-label {
+  font-size: 14px;
+  font-weight: 700;
+  animation: language-label-in 260ms ease-out both;
+}
+
+@keyframes language-spinner-turn {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes language-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes language-label-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .language-loading-overlay,
+  .language-loading-label { animation: none; }
+  .language-loading-spinner { animation-duration: 1.6s; }
+}
+
 body {
   margin: 0;
   min-width: 320px;
