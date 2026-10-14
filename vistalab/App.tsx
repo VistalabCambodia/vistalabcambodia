@@ -2399,12 +2399,12 @@ export default function App() {
                 <span className="text-xs font-extrabold text-green-600 uppercase">{selectedProduct.brand} • {localizedCategory(selectedProduct.category)}</span>
               </div>
               <h3 className="text-xl font-bold text-slate-900">{localizedProductName(selectedProduct)}</h3>
-              <ProductDescription text={localizedProductSpecs(selectedProduct)} className="text-xs text-slate-600" />
+              <ProductDescription text={localizedProductSpecs(selectedProduct)} className="text-sm leading-7 text-slate-700 sm:text-base" />
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-xl text-xs space-y-1">
-              <p><span className="font-bold">{tx('Country of Origin:', 'ប្រទេសដើម៖')}</span> {tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
-              <p><span className="font-bold">{tx('Sizes / Packaging:', 'ទំហំ / ការវេចខ្ចប់៖')}</span> {selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+            <div className="space-y-2 rounded-2xl bg-slate-50 p-5 text-sm leading-relaxed text-slate-800 sm:text-base">
+              <p><span className="font-extrabold text-slate-900">{tx('Country of Origin:', 'ប្រទេសដើម៖')}</span> {tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
+              <p><span className="font-extrabold text-slate-900">{tx('Sizes / Packaging:', 'ទំហំ / ការវេចខ្ចប់៖')}</span> {selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
             </div>
 
         </Modal>
