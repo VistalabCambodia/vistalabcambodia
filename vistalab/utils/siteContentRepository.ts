@@ -57,6 +57,9 @@ export async function saveSiteContent<Settings extends Record<string, unknown>>(
       savedSettings[key] = await storeImage(image, `banners/${key}.webp`);
     }
   }
+  if (Array.isArray(savedSettings.heroSlides)) {
+    savedSettings.heroSlides = await Promise.all(savedSettings.heroSlides.map((image, index) => storeImage(typeof image === 'string' ? image : undefined, `banners/hero-slide-${index + 1}.webp`)));
+  }
 
   const content = { brands: savedBrands, news: savedNews, settings: savedSettings as Settings };
   const { error } = await supabaseClient.from('site_content').upsert({ id: 'main', ...content });

@@ -231,6 +231,7 @@ function repairKhmerMojibake(value: string): string {
 
 export default function App() {
   const [lang, setLang] = useState<'EN' | 'KH'>('EN');
+  const [posterSlideIndex, setPosterSlideIndex] = useState(0);
   const [languageLoading, setLanguageLoading] = useState(false);
   const [currentView, setCurrentView] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1' ? 'admin' : 'home'); // home, about, brands, products, distribution, partner, seller, news, contact, admin
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
@@ -432,7 +433,7 @@ export default function App() {
   
   // Toast notifications
   const [toastMessage, setToastMessage] = useState('');
-  
+
   // Contact & Settings state
   const [settings, setSettings] = useState(() => {
     const defaults = {
@@ -440,6 +441,7 @@ export default function App() {
       email: "vistalab.cambodia@gmail.com", telegram: "@VISTALAB_Cambodia",
       facebook: "https://www.facebook.com/vistalab/", address_en: "Phnom Penh, Kingdom of Cambodia",
       heroImage: '',
+      heroSlides: [] as string[],
       heroTitle_en: 'Connecting International Brands with the Cambodian Market',
       heroTitle_kh: 'នាំយកម៉ាកផលិតផលអន្តរជាតិមកកាន់ទីផ្សារកម្ពុជា',
       heroSubtitle_en: 'Importer & Distributor of FMCG Products in Cambodia',
@@ -475,6 +477,14 @@ export default function App() {
       };
     } catch { return defaults; }
   });
+
+  const posterSlides = Array.isArray(settings.heroSlides) ? settings.heroSlides.filter((image: unknown): image is string => typeof image === 'string' && image.length > 0) : [];
+  useEffect(() => setPosterSlideIndex(0), [posterSlides.length]);
+  useEffect(() => {
+    if (posterSlides.length < 2 || currentView !== 'home') return;
+    const timer = window.setInterval(() => setPosterSlideIndex((index) => (index + 1) % posterSlides.length), 3800);
+    return () => window.clearInterval(timer);
+  }, [posterSlides.length, currentView]);
 
   const [siteContentLoaded, setSiteContentLoaded] = useState(!supabaseClient);
   const [siteContentReady, setSiteContentReady] = useState(!supabaseClient);
@@ -999,6 +1009,14 @@ export default function App() {
                 </div>
               </div>
             </section>
+            {posterSlides.length > 0 && <section aria-label={tx('Featured posters', 'ផ្ទាំងរូបភាពពិសេស')} className="mx-auto w-full max-w-7xl px-4 sm:px-8">
+              <div className="relative aspect-[16/7] min-h-48 overflow-hidden rounded-3xl bg-slate-100 shadow-lg sm:min-h-[300px]">
+                {posterSlides.map((image, index) => <img key={`${index}-${image.slice(0, 40)}`} src={image} alt={tx(`Featured poster ${index + 1}`, `ផ្ទាំងរូបភាព ${index + 1}`)} aria-hidden={index !== posterSlideIndex} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${index === posterSlideIndex ? 'opacity-100' : 'opacity-0'}`} />)}
+                {posterSlides.length > 1 && <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2" aria-label={tx('Choose a poster', 'ជ្រើសរើសផ្ទាំងរូបភាព')}>
+                  {posterSlides.map((_, index) => <button key={index} type="button" onClick={() => setPosterSlideIndex(index)} aria-label={tx(`Show poster ${index + 1}`, `បង្ហាញផ្ទាំងរូបភាព ${index + 1}`)} aria-current={index === posterSlideIndex} className={`h-2.5 rounded-full shadow transition-all ${index === posterSlideIndex ? 'w-8 bg-white' : 'w-2.5 bg-white/65 hover:bg-white'}`} />)}
+                </div>}
+              </div>
+            </section>}
             {/* TRUST / COMPANY INTRO CARDS */}
             <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-12">
               <div className="text-center max-w-3xl mx-auto space-y-3">
@@ -1881,6 +1899,17 @@ export default function App() {
                 <label className="text-xs font-bold text-slate-700">{tx('Poster description (Khmer)', 'សេចក្តីពិពណ៌នាផ្ទាំងរូបភាព (ខ្មែរ)')}<textarea rows={3} value={settings.heroDescription_kh} onChange={(event) => setSettings({ ...settings, heroDescription_kh: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm font-normal" /></label>
                 <label className="text-xs font-bold text-slate-700">{tx('Trusted brands badge', 'ចំនួនម៉ាកដែលទុកចិត្ត')}<input value={settings.heroTrustedBrands} onChange={(event) => setSettings({ ...settings, heroTrustedBrands: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm font-normal" /></label>
                 <ImageUpload label={tx('Homepage poster image', 'រូបភាពផ្ទាំងទំព័រដើម')} lang={lang} image={settings.heroImage} onChange={(heroImage) => setSettings({ ...settings, heroImage })} highQuality />
+              </div>
+              <div className="space-y-3 border-t border-slate-200 pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div><h3 className="text-sm font-extrabold text-slate-800">{tx('Homepage poster slider', 'ស្លាយផ្ទាំងរូបភាពទំព័រដើម')}</h3><p className="text-xs text-slate-500">{tx('Add posters for the rotating banner below the main hero. They rotate every few seconds.', 'បន្ថែមផ្ទាំងរូបភាពសម្រាប់បដាបង្វិលខាងក្រោមផ្នែកដើម។')}</p></div>
+                  <button type="button" onClick={() => setSettings({ ...settings, heroSlides: [...(Array.isArray(settings.heroSlides) ? settings.heroSlides : []), ''] })} className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3 py-2 text-xs font-bold text-white hover:bg-green-800"><Plus className="h-4 w-4" />{tx('Add poster slide', 'បន្ថែមស្លាយ')}</button>
+                </div>
+                {(Array.isArray(settings.heroSlides) ? settings.heroSlides : []).map((image: string, index: number) => <div key={index} className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-start">
+                  <div className="min-w-0 flex-1"><ImageUpload label={`${tx('Poster slide', 'ស្លាយផ្ទាំងរូបភាព')} ${index + 1}`} lang={lang} image={image} onChange={(nextImage) => setSettings({ ...settings, heroSlides: (settings.heroSlides as string[]).map((slide, slideIndex) => slideIndex === index ? nextImage : slide) })} highQuality /></div>
+                  <button type="button" onClick={() => { const nextSlides = (settings.heroSlides as string[]).filter((_, slideIndex) => slideIndex !== index); setSettings({ ...settings, heroSlides: nextSlides }); setPosterSlideIndex((current) => Math.min(current, Math.max(0, nextSlides.length - 1))); }} aria-label={`${tx('Remove poster slide', 'លុបស្លាយ')} ${index + 1}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />{tx('Remove', 'លុប')}</button>
+                </div>)}
+                {posterSlides.length === 0 && <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">{tx('No slider posters yet. Add one to show the poster slider on the homepage.', 'មិនទាន់មានផ្ទាំងរូបភាពស្លាយទេ។ សូមបន្ថែម ដើម្បីបង្ហាញស្លាយនៅទំព័រដើម។')}</p>}
               </div>
               <p className="text-xs text-slate-500">{tx('Changes save in this browser automatically.', 'ការកែប្រែត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះដោយស្វ័យប្រវត្តិ។')}</p>
             </section>
