@@ -844,16 +844,17 @@ export default function App() {
           {/* Logo */}
           <div 
             onClick={() => setCurrentView('home')} 
-            className="cursor-pointer flex min-w-0 flex-1 items-center space-x-3 group"
+            className="group flex min-w-0 flex-1 items-center gap-2 sm:gap-3"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-green-100 bg-white shadow-sm transition-transform group-hover:scale-105 sm:h-11 sm:w-11">
-              <BrandMark className="h-8 w-8 sm:h-9 sm:w-9" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-green-100 bg-white shadow-sm transition-transform group-hover:scale-105 sm:h-11 sm:w-11">
+              <BrandMark className="h-7 w-7 sm:h-9 sm:w-9" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 truncate text-[15px] font-black tracking-[0.04em] text-[#153C73] sm:text-xl">
-                VISTALAB <img src="./cambodia-flag.svg" alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="inline-block h-4 w-6 shrink-0 rounded-[3px] align-middle object-cover shadow-sm ring-1 ring-black/10 sm:h-[18px] sm:w-[27px]" />
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-1 whitespace-nowrap text-sm font-black tracking-[0.04em] text-[#153C73] sm:gap-2 sm:text-xl">
+                <span className="truncate">VISTALAB</span>
+                <img src="./cambodia-flag.svg" alt={tx('Cambodia flag', 'ទង់ជាតិកម្ពុជា')} className="inline-block h-3.5 w-5 shrink-0 rounded-[3px] align-middle object-cover shadow-sm ring-1 ring-black/10 sm:h-[18px] sm:w-[27px] max-[340px]:hidden" />
               </div>
-              <div className="text-[9px] font-semibold tracking-[0.09em] text-slate-500 sm:text-[10px] sm:tracking-[0.12em] max-[360px]:hidden">
+              <div className="hidden text-[9px] font-semibold tracking-[0.09em] text-slate-500 min-[480px]:block sm:text-[10px] sm:tracking-[0.12em]">
                 {tx('FMCG IMPORTER & DISTRIBUTOR', 'អ្នកនាំចូល និងចែកចាយផលិតផល FMCG')}
               </div>
             </div>
