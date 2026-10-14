@@ -98,7 +98,7 @@ function formatStorageBytes(bytes: number): string {
 function ProductDescription({ text, className }: { text: string; className: string }) {
   const items = text.split(/[\n•]+/u).map((item) => item.trim().replace(/^[-*]\s*/u, '')).filter(Boolean);
   if (items.length > 1) {
-    return <ul className={`${className} list-disc space-y-1 pl-5`}>{items.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>;
+    return <div className={`${className} space-y-1`}>{items.map((item, index) => <p key={`${index}-${item}`}>{item}</p>)}</div>;
   }
   return <p className={`${className} whitespace-pre-line`}>{items[0] ?? text}</p>;
 }
