@@ -38,6 +38,34 @@ export const distributionHubs = [
   { id: 'h5', name: "Tbong Khmum / Kampong Cham", locationQuery: "Kampong Cham, Cambodia", type: "Eastern Hub", status: "Active", count: "110+ Outlets" }
 ];
 
+export const cambodianProvinces = [
+  { name: 'Banteay Meanchey', nameKh: 'បន្ទាយមានជ័យ' },
+  { name: 'Battambang', nameKh: 'បាត់ដំបង' },
+  { name: 'Kampong Cham', nameKh: 'កំពង់ចាម' },
+  { name: 'Kampong Chhnang', nameKh: 'កំពង់ឆ្នាំង' },
+  { name: 'Kampong Speu', nameKh: 'កំពង់ស្ពឺ' },
+  { name: 'Kampong Thom', nameKh: 'កំពង់ធំ' },
+  { name: 'Kampot', nameKh: 'កំពត' },
+  { name: 'Kandal', nameKh: 'កណ្ដាល' },
+  { name: 'Kep', nameKh: 'កែប' },
+  { name: 'Koh Kong', nameKh: 'កោះកុង' },
+  { name: 'Kratie', nameKh: 'ក្រចេះ' },
+  { name: 'Mondul Kiri', nameKh: 'មណ្ឌលគិរី' },
+  { name: 'Phnom Penh', nameKh: 'ភ្នំពេញ' },
+  { name: 'Pailin', nameKh: 'ប៉ៃលិន' },
+  { name: 'Preah Sihanouk', nameKh: 'ព្រះសីហនុ' },
+  { name: 'Preah Vihear', nameKh: 'ព្រះវិហារ' },
+  { name: 'Prey Veng', nameKh: 'ព្រៃវែង' },
+  { name: 'Pursat', nameKh: 'ពោធិ៍សាត់' },
+  { name: 'Ratanak Kiri', nameKh: 'រតនគិរី' },
+  { name: 'Siem Reap', nameKh: 'សៀមរាប' },
+  { name: 'Stung Treng', nameKh: 'ស្ទឹងត្រែង' },
+  { name: 'Svay Rieng', nameKh: 'ស្វាយរៀង' },
+  { name: 'Takeo', nameKh: 'តាកែវ' },
+  { name: 'Tboung Khmum', nameKh: 'ត្បូងឃ្មុំ' },
+  { name: 'Oddar Meanchey', nameKh: 'ឧត្តរមានជ័យ' }
+];
+
 export const initialInquiries = [
   { id: 'inq-101', type: 'Seller', name: 'Sokha Chan', business: 'Sokha Mart', phone: '+855 12 888 999', telegram: '@sokhamart', province: 'Phnom Penh', status: 'New', date: '2026-04-01', details: 'Interested in stocking L\'affair shower cream and Be Love baby wipes.' },
   { id: 'inq-102', type: 'Partner', name: 'Tan Wei Ming', business: 'Global FMCG Asia Ltd', phone: '+60 12 345 6789', telegram: '@twm_fmcg', province: 'Malaysia / Supplier', status: 'In Progress', date: '2026-03-29', details: 'Looking for exclusive distributor for personal care brand in Cambodia.' },

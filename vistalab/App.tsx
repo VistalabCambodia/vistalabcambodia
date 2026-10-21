@@ -7,6 +7,7 @@ import {
   Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon, Download
 } from 'lucide-react';
 import {
+  cambodianProvinces,
   distributionHubs,
   initialBrands,
   initialInquiries,
@@ -634,7 +635,7 @@ export default function App() {
     ? ({ New: 'ថ្មី', 'In Progress': 'កំពុងដំណើរការ', Contacted: 'បានទាក់ទង' }[value] ?? value)
     : value;
   const localizedProvince = (value: string) => lang === 'KH'
-    ? ({ 'Phnom Penh': 'ភ្នំពេញ', 'Siem Reap': 'សៀមរាប', Battambang: 'បាត់ដំបង', Kampot: 'កំពត', Sihanoukville: 'ព្រះសីហនុ', 'Other Province': 'ខេត្តផ្សេងទៀត' }[value] ?? value)
+    ? ({ 'Phnom Penh': 'ភ្នំពេញ', Sihanoukville: 'ព្រះសីហនុ', 'Other Province': 'ខេត្តផ្សេងទៀត' }[value] ?? cambodianProvinces.find((province) => province.name === value)?.nameKh ?? value)
     : value;
 
   // Helper for Toast Trigger
@@ -1230,7 +1231,7 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3 rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700"><MapPin className="h-5 w-5" aria-hidden="true" /></span>
-                      <span><span className="block text-sm font-bold text-slate-900">{tx('Provincial Hubs', 'មជ្ឈមណ្ឌលតាមខេត្ត')}</span><span className="mt-0.5 block text-xs text-slate-500">{tx('Siem Reap, Battambang & Kampot', 'សៀមរាប បាត់ដំបង និងកំពត')}</span></span>
+                      <span><span className="block text-sm font-bold text-slate-900">{tx('Provincial Hubs', 'មជ្ឈមណ្ឌលតាមខេត្ត')}</span><span className="mt-0.5 block text-xs text-slate-500">{tx('24 provinces + Phnom Penh', '២៤ ខេត្ត និងរាជធានីភ្នំពេញ')}</span></span>
                     </div>
                   </div>
                   <button
@@ -1285,6 +1286,12 @@ export default function App() {
                       {tx('Open in Google Maps', 'បើកក្នុង Google Maps')}
                     </a>
                   </div>
+                  <details className="mt-4 border-t border-green-100 pt-3 text-sm text-slate-700">
+                    <summary className="cursor-pointer font-semibold text-green-800">{tx('View all 24 provinces + Phnom Penh', 'មើលខេត្តទាំង ២៤ និងរាជធានីភ្នំពេញ')}</summary>
+                    <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                      {cambodianProvinces.map((province) => <li key={province.name} className="min-w-0 truncate">{lang === 'KH' ? province.nameKh : province.name}</li>)}
+                    </ul>
+                  </details>
                 </div>
               </div>
             </section>
@@ -1691,13 +1698,8 @@ export default function App() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">{tx('Province / City *', 'ខេត្ត / ក្រុង *')}</label>
-                <select name="province" className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-900 bg-white">
-                  <option value="Phnom Penh">ភ្នំពេញ</option>
-                  <option value="Siem Reap">សៀមរាប</option>
-                  <option value="Battambang">បាត់ដំបង</option>
-                  <option value="Kampot">កំពត</option>
-                  <option value="Sihanoukville">ព្រះសីហនុ</option>
-                  <option value="Other Province">ខេត្តផ្សេងទៀត</option>
+                <select required name="province" defaultValue="Phnom Penh" className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-900 bg-white">
+                  {cambodianProvinces.map((province) => <option key={province.name} value={province.name}>{lang === 'KH' ? province.nameKh : province.name}</option>)}
                 </select>
               </div>
 
