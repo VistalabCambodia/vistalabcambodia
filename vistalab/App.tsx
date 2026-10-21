@@ -378,6 +378,7 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [newProductImage, setNewProductImage] = useState('');
+  const [newProductSaving, setNewProductSaving] = useState(false);
   const [newProductSpecs, setNewProductSpecs] = useState('');
   const [newProductSpecsKh, setNewProductSpecsKh] = useState('');
   const [newProductBrand, setNewProductBrand] = useState(() => initialBrands[0]?.name ?? '');
@@ -2360,14 +2361,20 @@ export default function App() {
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <h2 className="flex items-center gap-2 text-lg font-extrabold text-[#202124]"><Package className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />{tx('Add New Product to Website Catalog', 'បន្ថែមផលិតផលថ្មីទៅក្នុងកាតាឡុកគេហទំព័រ')}</h2>
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
+                  if (newProductSaving) return;
+                  const form = e.currentTarget;
                   const descriptionText = (html: string) => html.replace(/<[^>]*>/gu, '').replace(/&nbsp;/gu, ' ').trim();
                   if (!descriptionText(newProductSpecs)) {
                     triggerToast(tx('Please enter the product description.', 'សូមបញ្ចូលការពិពណ៌នាផលិតផល។'));
                     return;
                   }
-                  const fd = new FormData(e.currentTarget);
+                  if (!supabaseClient) {
+                    triggerToast('Supabase is not configured. The product was not saved.');
+                    return;
+                  }
+                  const fd = new FormData(form);
                   const newP = {
                     id: `p-${Date.now()}`,
                     name_en: String(fd.get('name_en') || ''),
@@ -2383,12 +2390,26 @@ export default function App() {
                     imageBadge: "New",
                     image: newProductImage || undefined
                   };
-                  setProducts((currentProducts) => [newP, ...currentProducts]);
-                  e.currentTarget.reset();
-                  setNewProductImage('');
-                  setNewProductSpecs('');
-                  setNewProductSpecsKh('');
-                  triggerToast(tx('New product added to public catalog!', 'បានបន្ថែមផលិតផលថ្មីទៅក្នុងកាតាឡុកសាធារណៈ!'));
+                  setNewProductSaving(true);
+                  setProductsSyncing(true);
+                  setProductsDatabaseError('');
+                  try {
+                    const saved = await saveProductToSupabase(newP);
+                    productBaseline.current.set(saved.id, JSON.stringify(saved));
+                    setProducts((currentProducts) => [saved, ...currentProducts]);
+                    form.reset();
+                    setNewProductImage('');
+                    setNewProductSpecs('');
+                    setNewProductSpecsKh('');
+                    triggerToast('Product saved to Supabase and added to the catalog.');
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Could not save this product to Supabase.';
+                    setProductsDatabaseError(message);
+                    triggerToast(`Product was not saved: ${message}`);
+                  } finally {
+                    setNewProductSaving(false);
+                    setProductsSyncing(productsInFlight.current.size > 0);
+                  }
                 }}
                 className="grid grid-cols-1 sm:grid-cols-3 gap-4"
               >
@@ -2412,8 +2433,8 @@ export default function App() {
                   <input name="sizes" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
                 </label>
                 <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={newProductImage} onChange={setNewProductImage} crop aspectRatio={4 / 3} />
-                <button type="submit" className="bg-[#267A3B] text-white rounded-xl text-xs font-bold py-2.5 sm:col-span-3">
-                  {tx('+ Publish Product to Catalog', '+ បោះពុម្ពផលិតផលទៅកាតាឡុក')}
+                <button type="submit" disabled={newProductSaving} className="bg-[#267A3B] text-white rounded-xl text-xs font-bold py-2.5 sm:col-span-3 disabled:cursor-wait disabled:opacity-60">
+                  {newProductSaving ? tx('Saving product…', 'កំពុងរក្សាទុកផលិតផល…') : tx('+ Publish Product to Catalog', '+ បោះពុម្ពផលិតផលទៅកាតាឡុក')}
                 </button>
               </form>
           </div>
