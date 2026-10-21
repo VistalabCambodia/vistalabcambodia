@@ -1040,7 +1040,7 @@ export default function App() {
       <main key={currentView} className="page-transition min-w-0 flex-grow">
         {/* VIEW: HOMEPAGE */}
         {currentView === 'home' && (
-          <div className="space-y-10 sm:space-y-16 sm:space-y-24 pb-16">
+          <div className="space-y-6 pb-16 sm:space-y-16 lg:space-y-24">
             {/* HERO POSTER */}
             <section className="site-hero-friendly overflow-hidden px-4 py-4 sm:px-8 sm:py-8">
               <div style={{ width: 'min(100%, calc(100vw - 2rem))', minWidth: 0 }} className="relative mx-auto min-h-0 w-full min-w-0 max-w-7xl overflow-hidden rounded-[2rem] bg-green-50 shadow-xl sm:min-h-[460px]">
@@ -1076,7 +1076,7 @@ export default function App() {
               </div>
             </section>
             {posterSlides.length > 0 && <section aria-label={tx('Featured posters', 'ផ្ទាំងរូបភាពពិសេស')} className="mx-auto w-full max-w-7xl px-4 sm:px-8">
-              <div className="relative aspect-[16/7] min-h-48 overflow-hidden rounded-3xl bg-slate-100 shadow-lg sm:min-h-[300px]">
+              <div className="relative aspect-[16/8] min-h-40 overflow-hidden rounded-3xl bg-slate-100 shadow-lg sm:aspect-[16/7] sm:min-h-[300px]">
                 {posterSlides.map((image, index) => <img key={`${index}-${image.slice(0, 40)}`} src={image} alt={tx(`Featured poster ${index + 1}`, `ផ្ទាំងរូបភាព ${index + 1}`)} aria-hidden={index !== posterSlideIndex} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${index === posterSlideIndex ? 'opacity-100' : 'opacity-0'}`} />)}
                 {posterSlides.length > 1 && <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2" aria-label={tx('Choose a poster', 'ជ្រើសរើសផ្ទាំងរូបភាព')}>
                   {posterSlides.map((_, index) => <button key={index} type="button" onClick={() => setPosterSlideIndex(index)} aria-label={tx(`Show poster ${index + 1}`, `បង្ហាញផ្ទាំងរូបភាព ${index + 1}`)} aria-current={index === posterSlideIndex} className={`h-2.5 rounded-full shadow transition-all ${index === posterSlideIndex ? 'w-8 bg-white' : 'w-2.5 bg-white/65 hover:bg-white'}`} />)}
@@ -1084,7 +1084,7 @@ export default function App() {
               </div>
             </section>}
             {/* TRUST / COMPANY INTRO CARDS */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-12">
+            <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8 sm:space-y-12">
               <div className="text-center max-w-3xl mx-auto space-y-3">
                 <h2 className="text-2xl sm:text-4xl font-extrabold text-[#202124]">{t.trustTitle}</h2>
                 <p className="text-slate-600 text-sm sm:text-base">{t.trustDesc}</p>
