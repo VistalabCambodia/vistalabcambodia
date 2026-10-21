@@ -32,28 +32,27 @@ export async function trackWebsiteEvent(event: TrackableEvent): Promise<void> {
   if (!supabaseClient) return;
   const visitorId = getVisitorSessionId();
   if (!visitorId) return;
-
-  // Analytics must never interrupt normal browsing if the table is not set up yet.
   try {
-    await supabaseClient.from('website_events').insert({
+    const { error } = await supabaseClient.from('website_events').insert({
       ...event,
       product_id: event.product_id ?? null,
       product_name: event.product_name?.slice(0, 160) ?? null,
       page_path: event.page_path.slice(0, 80),
       visitor_id: visitorId
     });
+    if (error) throw error;
   } catch {
-    // Analytics must not interrupt normal browsing when the network is unavailable.
+    // Analytics must not interrupt normal browsing if the table is unavailable.
   }
 }
 
 export async function fetchWebsiteEvents(): Promise<{ events: WebsiteEvent[]; error: string | null }> {
   if (!supabaseClient) return { events: [], error: 'Supabase is not configured.' };
-  const { data, error } = await supabaseClient
-    .from('website_events')
-    .select('id,event_type,page_path,product_id,product_name,visitor_id,created_at')
-    .order('created_at', { ascending: false })
-    .limit(1000);
-
-  return { events: (data ?? []) as WebsiteEvent[], error: error?.message ?? null };
+  try {
+    const { data, error } = await supabaseClient.from('website_events').select('*').order('created_at', { ascending: false }).limit(1000);
+    if (error) throw error;
+    return { events: (data ?? []) as WebsiteEvent[], error: null };
+  } catch (error) {
+    return { events: [], error: error instanceof Error ? error.message : 'Could not load traffic history.' };
+  }
 }

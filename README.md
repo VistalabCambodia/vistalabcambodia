@@ -58,7 +58,7 @@ index.html                   Vite HTML shell
 public/images/               Static image assets
 ```
 
-When Supabase is configured, products and editable site content can sync between visitors. Inquiries still use the current browser's local storage.
+When Supabase is configured, products, editable site content, inquiries, traffic events, and images sync between visitors.
 
 ## Configure admin sign-in
 
@@ -75,13 +75,21 @@ After admin sign-in is configured, run [`supabase/product_catalog_setup.sql`](su
 
 Then open the website, sign in to the admin page, and select **Products**. If the table is empty, the existing product catalog in that browser will be uploaded automatically. After that, new and edited products and their pictures sync through Supabase and appear to visitors on other devices. If the database setup is missing, the Products page shows a setup message and retry button.
 
+## Wholesale price catalogs
+
+The admin page includes **Catalog Studio**, based on the supplied standalone editor. It supports multiple catalog pages, product and discount tables, three price lists, bulk price changes, photo layouts, live A4 preview, PNG/PDF export, and JSON backup/restore. Its data is stored privately in Supabase and is not shown on public product pages. Run [`supabase/price_catalogs_setup.sql`](supabase/price_catalogs_setup.sql) in the Supabase SQL Editor before using it.
+
+Staff can use the read-only catalog viewer at `?catalog=staff` (append it to the website address). Staff accounts must first be created in Supabase Authentication, then added to `public.catalog_staff_users`; the SQL file includes the grant statement. Staff can switch catalog page and price list and download the current sheet as a JPG. Only approved staff and admins can open the viewer or read the catalog data.
+
 ## Store other website images and content in Supabase
 
 Run [`supabase/site_content_storage_setup.sql`](supabase/site_content_storage_setup.sql) in the Supabase SQL Editor too. Then open the site and sign in to the admin page. The first admin visit copies existing brands, news, page text, contact details, and uploaded banner/logo/flag/news images from that browser into Supabase. Future edits sync automatically; pictures are stored in the public `site-images` bucket. The admin dashboard shows whether the setup is connected or needs attention.
 
 Use **Admin → Data & storage** to check product, site content, and traffic table availability, view image counts and estimated size by bucket, and open recent uploads. Click **Check again** to refresh the dashboard values.
 
-GitHub Pages continues to host the website. Supabase stores products, editable page content, and uploaded pictures; monitor your project usage as the site grows. Inquiry submissions remain in the current browser's local storage.
+GitHub Pages hosts the website. Supabase stores products, editable page content, uploaded pictures, traffic history, and visitor inquiries; monitor your project usage as the site grows.
+
+Run [`supabase/inquiries_setup.sql`](supabase/inquiries_setup.sql) to store visitor inquiries in Supabase. Visitors can submit inquiries, while only approved admins can read or update them. The GitHub Pages workflow uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; Cloudflare Worker settings are not required by the website frontend.
 
 ## Admin traffic analytics
 

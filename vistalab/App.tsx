@@ -19,21 +19,23 @@ import {
   type Product
 } from './data/siteData';
 import { Modal } from './components/Modal';
+import { CatalogStudioAdmin } from './components/CatalogStudioAdmin';
+import { StaffCatalogPage } from './components/StaffCatalogPage';
+import { isAdminUser, isCatalogStaffUser, supabaseClient } from './utils/supabase';
 
 import { ImageUpload } from './components/ImageUpload';
 import { BrandMark } from './components/BrandMark';
 import { CountryFlag } from './components/CountryFlag';
 import { loadStoredArray } from './utils/storage';
 import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } from './data/translations';
-import { isAdminUser, supabaseClient } from './utils/supabase';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
-import { mapProductRow, saveProductToSupabase } from './utils/productRepository';
-import { mapSiteContentRow, saveSiteContent } from './utils/siteContentRepository';
+import { loadProductsFromSupabase, saveProductToSupabase } from './utils/productRepository';
+import { loadSiteContent, saveSiteContent, type SiteContent } from './utils/siteContentRepository';
 import { downloadSiteBackup } from './utils/backup';
 
 type RecentStoredImage = { bucket: string; name: string; createdAt: string; bytes: number };
 type BucketHealth = { bucket: string; files: number; bytes: number; latest: { name: string; createdAt: string } | null; recent: RecentStoredImage[]; error?: string };
-type DataHealth = { products: { count: number; error?: string }; siteContent: { count: number; error?: string }; events: { count: number; error?: string }; buckets: BucketHealth[]; recentUploads: RecentStoredImage[]; checkedAt: string };
+type DataHealth = { products: { count: number; error?: string }; siteContent: { count: number; error?: string }; inquiries: { count: number; error?: string }; events: { count: number; error?: string }; buckets: BucketHealth[]; recentUploads: RecentStoredImage[]; checkedAt: string };
 
 const adminSectionIcons = {
   overview: Globe,
@@ -45,7 +47,8 @@ const adminSectionIcons = {
   inquiries: MessageCircle,
   analytics: BarChart3,
   storage: HardDrive,
-  products: Package
+  products: Package,
+  catalogs: FileText
 };
 
 async function inspectImageBucket(bucket: string): Promise<BucketHealth> {
@@ -55,7 +58,6 @@ async function inspectImageBucket(bucket: string): Promise<BucketHealth> {
   let latest: BucketHealth['latest'] = null;
   const recent: RecentStoredImage[] = [];
   const pendingFolders = [''];
-
   while (pendingFolders.length) {
     const folder = pendingFolders.pop()!;
     let offset = 0;
@@ -71,15 +73,12 @@ async function inspectImageBucket(bucket: string): Promise<BucketHealth> {
         files += 1;
         const fileBytes = Number(item.metadata?.size ?? 0);
         bytes += fileBytes;
-        if (item.created_at) {
-          const name = folder ? `${folder}/${item.name}` : item.name;
-          recent.push({ bucket, name, createdAt: item.created_at, bytes: fileBytes });
-          recent.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-          recent.length = Math.min(recent.length, 8);
-          if (!latest || Date.parse(item.created_at) > Date.parse(latest.createdAt)) {
-            latest = { name, createdAt: item.created_at };
-          }
-        }
+        if (!item.created_at) continue;
+        const name = folder ? `${folder}/${item.name}` : item.name;
+        recent.push({ bucket, name, createdAt: item.created_at, bytes: fileBytes });
+        recent.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+        recent.length = Math.min(recent.length, 8);
+        if (!latest || Date.parse(item.created_at) > Date.parse(latest.createdAt)) latest = { name, createdAt: item.created_at };
       }
       if (items.length < 100) break;
       offset += items.length;
@@ -230,10 +229,15 @@ function repairKhmerMojibake(value: string): string {
 }
 
 export default function App() {
+  const standaloneCatalog = new URLSearchParams(window.location.search).get('tool') === 'catalog-studio';
+  const staffCatalogView = new URLSearchParams(window.location.search).get('catalog') === 'staff';
   const [lang, setLang] = useState<'EN' | 'KH'>('EN');
   const [posterSlideIndex, setPosterSlideIndex] = useState(0);
   const [languageLoading, setLanguageLoading] = useState(false);
-  const [currentView, setCurrentView] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1' ? 'admin' : 'home'); // home, about, brands, products, distribution, partner, seller, news, contact, admin
+  const [currentView, setCurrentView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('admin') === '1' || params.get('tool') === 'catalog-studio' || params.get('catalog') === 'staff' ? 'admin' : 'home';
+  }); // home, about, brands, products, distribution, partner, seller, news, contact, admin
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [adminAuthReady, setAdminAuthReady] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -241,7 +245,7 @@ export default function App() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState('');
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
-  const [activeAdminSection, setActiveAdminSection] = useState('overview');
+  const [activeAdminSection, setActiveAdminSection] = useState(() => standaloneCatalog ? 'catalogs' : 'overview');
   const [websiteEvents, setWebsiteEvents] = useState<WebsiteEvent[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
@@ -283,16 +287,14 @@ export default function App() {
     .slice(0, 5);
 
   useEffect(() => {
-    if (!supabaseClient) {
-      setAdminAuthReady(true);
-      return;
-    }
-
+    if (!supabaseClient) { setAdminAuthReady(true); return; }
     let cancelled = false;
     const checkSession = async () => {
-      const { data } = await supabaseClient.auth.getSession();
-      const user = data.session?.user;
-      const allowed = user ? await isAdminUser(user.id) : false;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const user = session?.user;
+      const allowed = user ? (staffCatalogView
+        ? await isCatalogStaffUser(user.id) || await isAdminUser(user.id)
+        : await isAdminUser(user.id)) : false;
       if (cancelled) return;
       if (user && !allowed) await supabaseClient.auth.signOut();
       setAdminAuthenticated(allowed);
@@ -301,47 +303,57 @@ export default function App() {
     };
 
     void checkSession();
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
         setAdminAuthenticated(false);
         setAdminEmail('');
+        return;
       }
+      queueMicrotask(async () => {
+        const allowed = staffCatalogView
+          ? await isCatalogStaffUser(session.user.id) || await isAdminUser(session.user.id)
+          : await isAdminUser(session.user.id);
+        if (!allowed) await supabaseClient?.auth.signOut();
+        if (!cancelled) {
+          setAdminAuthenticated(allowed);
+          setAdminEmail(allowed ? session.user.email ?? '' : '');
+        }
+      });
     });
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [staffCatalogView]);
 
   const handleAdminLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!supabaseClient) return;
     setAdminLoginBusy(true);
     setAdminLoginError('');
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
-    if (error || !data.user) {
-      setAdminLoginError('Email or password is incorrect.');
+    try {
+      if (!supabaseClient) throw new Error('Supabase is not configured.');
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
+      if (error) throw error;
+      const allowed = data.user && (staffCatalogView
+        ? await isCatalogStaffUser(data.user.id) || await isAdminUser(data.user.id)
+        : await isAdminUser(data.user.id));
+      if (!allowed) {
+        await supabaseClient.auth.signOut();
+        throw new Error(staffCatalogView ? 'This account is not approved to view staff catalogs.' : 'This account is not approved as a site admin.');
+      }
+      setAdminEmail(data.user.email ?? adminEmail);
+      setAdminAuthenticated(true);
+      setAdminPassword('');
+    } catch (error) {
+      setAdminLoginError(error instanceof Error ? error.message : 'Email or password is incorrect.');
+    } finally {
       setAdminLoginBusy(false);
-      return;
     }
-
-    const allowed = await isAdminUser(data.user.id);
-    if (!allowed) {
-      await supabaseClient.auth.signOut();
-      setAdminLoginError('This account does not have admin access.');
-      setAdminLoginBusy(false);
-      return;
-    }
-
-    setAdminAuthenticated(true);
-    setAdminPassword('');
-    setAdminLoginBusy(false);
   };
 
   const handleAdminLogout = async () => {
-    if (supabaseClient) await supabaseClient.auth.signOut();
+    await supabaseClient?.auth.signOut();
     setAdminAuthenticated(false);
     setAdminEmail('');
     setAdminPassword('');
@@ -377,14 +389,16 @@ export default function App() {
     setProductsDatabaseReady(false);
     setProductsDatabaseError('');
     void (async () => {
-      const { data, error } = await supabaseClient.from('products').select('*').order('name_en');
-      if (cancelled) return;
-      if (error) {
-        setProductsDatabaseError(error.message);
+      let data;
+      try { data = await loadProductsFromSupabase(); }
+      catch (error) {
+        if (cancelled) return;
+        setProductsDatabaseError(error instanceof Error ? error.message : 'Could not load products from Supabase.');
         setProductsLoaded(true);
         return;
       }
-      const remoteProducts = (data ?? []).map((row) => mapProductRow(row));
+      if (cancelled) return;
+      const remoteProducts = data ?? [];
       if (remoteProducts.length) {
         productBaseline.current = new Map(remoteProducts.map((product) => [product.id, JSON.stringify(product)]));
         setProducts(remoteProducts);
@@ -399,7 +413,7 @@ export default function App() {
   }, [productsRetry]);
 
   useEffect(() => {
-    if (!supabaseClient || !productsLoaded || !productsDatabaseReady || !adminAuthenticated) return;
+    if (!supabaseClient || !productsLoaded || !productsDatabaseReady || !adminAuthenticated || staffCatalogView) return;
     const changed = products.filter((product) =>
       productBaseline.current.get(product.id) !== JSON.stringify(product) && !productsInFlight.current.has(product.id)
     );
@@ -503,19 +517,20 @@ export default function App() {
     setSiteContentReady(false);
     setSiteContentError('');
     void (async () => {
-      const { data, error } = await supabaseClient.from('site_content').select('*').eq('id', 'main').maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        setSiteContentError(error.message);
+      let data;
+      try { data = await loadSiteContent<Record<string, unknown>>(); }
+      catch (error) {
+        if (cancelled) return;
+        setSiteContentError(error instanceof Error ? error.message : 'Could not load site content from Supabase.');
         setSiteContentLoaded(true);
         return;
       }
+      if (cancelled) return;
       if (data) {
-        const content = mapSiteContentRow(data);
-        siteContentBaseline.current = JSON.stringify(content);
-        setBrands(content.brands);
-        setNews(content.news);
-        setSettings((current) => ({ ...current, ...content.settings }));
+        siteContentBaseline.current = JSON.stringify(data);
+        setBrands(data.brands);
+        setNews(data.news);
+        setSettings((current) => ({ ...current, ...data.settings }));
       } else {
         // The first admin visit imports the current browser's existing editable content.
         siteContentBaseline.current = null;
@@ -527,7 +542,7 @@ export default function App() {
   }, [siteContentRetry]);
 
   useEffect(() => {
-    if (!supabaseClient || !siteContentLoaded || !siteContentReady || !adminAuthenticated) return;
+    if (!supabaseClient || !siteContentLoaded || !siteContentReady || !adminAuthenticated || staffCatalogView) return;
     const timer = window.setTimeout(() => {
       siteContentSaveQueue.current = siteContentSaveQueue.current.then(async () => {
         const current = siteContentSnapshot.current;
@@ -634,7 +649,7 @@ export default function App() {
   };
 
   // Handle Form Submission
-  const handleInquirySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleInquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newInq = {
@@ -650,10 +665,34 @@ export default function App() {
       details: String(formData.get('message') || `Inquiry regarding ${inquiryPrefill.product || 'products'}`)
     };
     
-    setInquiries((currentInquiries) => [newInq, ...currentInquiries]);
+    try {
+      if (supabaseClient) {
+        const { error } = await supabaseClient.from('inquiries').insert({
+          ...newInq, product: inquiryPrefill.product, brand: inquiryPrefill.brand
+        });
+        if (error) throw error;
+      } else {
+        throw new Error('Supabase is not configured. This inquiry was not submitted.');
+      }
+      setInquiries((currentInquiries) => [newInq, ...currentInquiries]);
+    } catch (error) {
+      triggerToast(error instanceof Error ? error.message : 'Could not submit inquiry. Please try again.');
+      return;
+    }
     setInquiryModalOpen(false);
     triggerToast(lang === 'EN' ? "Inquiry submitted successfully! Our team will contact you soon." : "ការសាកសួរត្រូវបានផ្ញើរួចរាល់! ក្រុមការងារនឹងទាក់ទងទៅលោកអ្នក។");
   };
+
+  useEffect(() => {
+    if (!supabaseClient || !adminAuthenticated || staffCatalogView) return;
+    let cancelled = false;
+    void supabaseClient.from('inquiries').select('*').order('created_at', { ascending: false }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) setToastMessage(error.message);
+      else if (data) setInquiries(data as Inquiry[]);
+    });
+    return () => { cancelled = true; };
+  }, [adminAuthenticated, staffCatalogView]);
 
   // Scroll to top on navigation switch
   useEffect(() => {
@@ -691,22 +730,27 @@ export default function App() {
     }
     setDataHealthLoading(true);
     setDataHealthError('');
-    const [productsResult, contentResult, eventsResult, siteImages, productImages] = await Promise.all([
-      supabaseClient.from('products').select('id', { count: 'exact', head: true }),
-      supabaseClient.from('site_content').select('id', { count: 'exact', head: true }),
-      supabaseClient.from('website_events').select('id', { count: 'exact', head: true }),
-      inspectImageBucket('site-images'),
-      inspectImageBucket('product-images')
-    ]);
-    setDataHealth({
-      products: { count: productsResult.count ?? 0, ...(productsResult.error ? { error: productsResult.error.message } : {}) },
-      siteContent: { count: contentResult.count ?? 0, ...(contentResult.error ? { error: contentResult.error.message } : {}) },
-      events: { count: eventsResult.count ?? 0, ...(eventsResult.error ? { error: eventsResult.error.message } : {}) },
-      buckets: [siteImages, productImages],
-      recentUploads: [...siteImages.recent, ...productImages.recent].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 8),
-      checkedAt: new Date().toISOString()
-    });
-    setDataHealthLoading(false);
+    try {
+      const [products, siteContent, inquiries, events, productImages, siteImages] = await Promise.all([
+        supabaseClient.from('products').select('*', { count: 'exact', head: true }),
+        supabaseClient.from('site_content').select('*', { count: 'exact', head: true }),
+        supabaseClient.from('inquiries').select('*', { count: 'exact', head: true }),
+        supabaseClient.from('website_events').select('*', { count: 'exact', head: true }),
+        inspectImageBucket('product-images'),
+        inspectImageBucket('site-images')
+      ]);
+      const toCheck = (result: { count: number | null; error: { message: string } | null }) => ({ count: result.count ?? 0, ...(result.error ? { error: result.error.message } : {}) });
+      const buckets = [productImages, siteImages];
+      setDataHealth({
+        products: toCheck(products), siteContent: toCheck(siteContent), inquiries: toCheck(inquiries), events: toCheck(events), buckets,
+        recentUploads: buckets.flatMap((bucket) => bucket.recent).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 8),
+        checkedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      setDataHealthError(error instanceof Error ? error.message : 'Could not check Supabase storage.');
+    } finally {
+      setDataHealthLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -754,15 +798,14 @@ export default function App() {
         <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70 sm:p-8">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-800"><Settings className="h-6 w-6" aria-hidden="true" /></div>
-            <div><p className="text-xs font-bold uppercase tracking-wider text-green-700">VistaLab Cambodia</p><h1 className="text-2xl font-black text-slate-900">Admin sign in</h1></div>
+            <div><p className="text-xs font-bold uppercase tracking-wider text-green-700">VistaLab Cambodia</p><h1 className="text-2xl font-black text-slate-900">{staffCatalogView ? 'Staff catalog sign in' : 'Admin sign in'}</h1></div>
           </div>
           {!adminAuthReady ? (
             <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Checking admin session…</p>
           ) : !supabaseClient ? (
             <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">
               <p className="font-bold">Admin sign-in is not configured yet.</p>
-              <p>Add the Supabase project URL and publishable anon key as GitHub Actions variables named <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>, then redeploy.</p>
-              <p>Run <code>supabase/admin_auth_setup.sql</code> in the Supabase SQL Editor and grant admin access to your account.</p>
+              <p>Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your local environment or GitHub Actions variables, then restart the dev server or rebuild the site.</p>
             </div>
           ) : (
             <form onSubmit={handleAdminLogin} className="space-y-4">
@@ -779,8 +822,30 @@ export default function App() {
               <button type="submit" disabled={adminLoginBusy} className="w-full rounded-xl bg-[#267A3B] px-4 py-3 font-bold text-white transition hover:bg-[#206d34] disabled:cursor-wait disabled:opacity-60">{adminLoginBusy ? 'Signing in…' : 'Sign in'}</button>
             </form>
           )}
+          <a href={`${window.location.pathname}?${staffCatalogView ? 'admin=1' : 'catalog=staff'}`} className="mt-3 block w-full rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-green-800 hover:bg-green-50">
+            {staffCatalogView ? 'Admin sign in' : 'Staff catalog sign in'}
+          </a>
           <button onClick={() => { setCurrentView('home'); window.history.replaceState(null, '', window.location.pathname); }} className="mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">Back to website</button>
         </section>
+      </main>
+    );
+  }
+
+  if (currentView === 'admin' && staffCatalogView && adminAuthenticated) {
+    return <StaffCatalogPage onSignOut={handleAdminLogout} />;
+  }
+
+  if (currentView === 'admin' && standaloneCatalog && adminAuthenticated) {
+    return (
+      <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-50">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6">
+          <div className="flex items-center gap-3">
+            <p className="hidden text-xs font-bold uppercase tracking-wider text-green-700 sm:block">VistaLab Cambodia · Admin</p>
+            <h1 className="text-lg font-black text-slate-900">Catalog Studio</h1>
+          </div>
+          <a href={`${window.location.pathname}?admin=1`} className="shrink-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to Admin</a>
+        </header>
+        <CatalogStudioAdmin fullScreen />
       </main>
     );
   }
@@ -1799,7 +1864,7 @@ export default function App() {
               <div className="flex items-center space-x-2">
                 <button onClick={() => void handleAdminLogout()} className="rounded-xl border border-white/30 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10">Sign out</button>
                 <button
-                  onClick={() => triggerToast(supabaseClient ? tx('Website content syncs to Supabase automatically.', 'មាតិកាគេហទំព័រធ្វើសមកាលកម្មទៅ Supabase ដោយស្វ័យប្រវត្តិ។') : tx('Website content is saved in this browser.', 'មាតិកាគេហទំព័រត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះ។'))}
+                  onClick={() => triggerToast(Boolean(supabaseClient) ? tx('Website content syncs to Supabase automatically.', 'មាតិកាគេហទំព័រធ្វើសមកាលកម្មទៅ Supabase ដោយស្វ័យប្រវត្តិ។') : tx('Website content is saved in this browser.', 'មាតិកាគេហទំព័រត្រូវបានរក្សាទុកក្នុងកម្មវិធីរុករកនេះ។'))}
                   className="bg-green-500 text-slate-950 hover:bg-green-600 px-4 py-2 rounded-xl text-xs font-extrabold shadow"
                 >
                   {tx('Save Settings', 'រក្សាទុកការកំណត់')}
@@ -1829,8 +1894,15 @@ export default function App() {
                   { id: 'analytics', label: tx('Traffic analytics', 'ស្ថិតិអ្នកចូលមើល'), detail: tx('Visits and product views', 'ការចូលមើល និងផលិតផល') },
                   { id: 'storage', label: tx('Data & storage', 'ទិន្នន័យ និងឃ្លាំងផ្ទុក'), detail: tx('Health and uploaded images', 'សុខភាពទិន្នន័យ និងរូបភាព') },
                   { id: 'products', label: tx('Products', 'ផលិតផល'), detail: `${products.length} ${tx('products', 'ផលិតផល')}` },
+                  { id: 'catalogs', label: 'Catalog Studio', detail: tx('Catalog pages and price lists', 'ទំព័រកាតាឡុក និងបញ្ជីតម្លៃ') },
                 ].map((item) => (
-                  <button key={item.id} type="button" onClick={() => setActiveAdminSection(item.id)} aria-current={activeAdminSection === item.id ? 'page' : undefined}
+                  <button key={item.id} type="button" onClick={() => {
+                    if (item.id === 'catalogs') {
+                      const url = new URL(window.location.href);
+                      url.search = '?admin=1&tool=catalog-studio';
+                      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+                    } else setActiveAdminSection(item.id);
+                  }} aria-current={activeAdminSection === item.id ? 'page' : undefined}
                     className={`mb-1 flex w-full items-center justify-between gap-2 rounded-2xl px-3 py-3 text-left transition ${activeAdminSection === item.id ? 'bg-green-700 text-white shadow-sm' : 'text-slate-700 hover:bg-green-50'}`}>
                     <span className="flex min-w-0 items-start gap-2.5">{React.createElement(adminSectionIcons[item.id as keyof typeof adminSectionIcons], { className: `mt-0.5 h-4 w-4 shrink-0 ${activeAdminSection === item.id ? 'text-green-100' : 'text-green-700'}`, 'aria-hidden': true })}<span className="min-w-0"><span className="block text-sm font-bold">{item.label}</span><span className={`mt-0.5 block text-[11px] ${activeAdminSection === item.id ? 'text-green-100' : 'text-slate-500'}`}>{item.detail}</span></span></span>
                     <span aria-hidden="true" className="text-lg leading-none">›</span>
@@ -2131,9 +2203,14 @@ export default function App() {
                         </td>
                         <td className="p-3">
                           <button
-                            onClick={() => {
-                              setInquiries((currentInquiries) => currentInquiries.map(i => i.id === inq.id ? { ...i, status: 'Contacted' } : i));
-                              triggerToast(tx('Inquiry status updated to Contacted.', 'បានកែស្ថានភាពសំណួរទៅជា បានទាក់ទង។'));
+                            onClick={async () => {
+                              try {
+                                if (!supabaseClient) throw new Error('Supabase is not configured.');
+                                const { error } = await supabaseClient.from('inquiries').update({ status: 'Contacted' }).eq('id', inq.id);
+                                if (error) throw error;
+                                setInquiries((currentInquiries) => currentInquiries.map(i => i.id === inq.id ? { ...i, status: 'Contacted' } : i));
+                                triggerToast(tx('Inquiry status updated to Contacted.', 'បានកែស្ថានភាពសំណួរទៅជា បានទាក់ទង។'));
+                              } catch (error) { triggerToast(error instanceof Error ? error.message : 'Could not update inquiry.'); }
                             }}
                             className="text-[11px] font-bold text-green-900 hover:underline"
                           >
@@ -2161,7 +2238,7 @@ export default function App() {
 
               {analyticsError ? <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
                 <p className="font-extrabold">{tx('Analytics setup is needed', 'ត្រូវរៀបចំស្ថិតិជាមុន')}</p>
-                <p className="mt-1">{tx('Run supabase/website_analytics_setup.sql in your Supabase SQL Editor, then refresh this page. New visits will appear after setup.', 'ដំណើរការឯកសារ supabase/website_analytics_setup.sql ក្នុង Supabase SQL Editor រួចចុចផ្ទុកឡើងវិញ។ ការចូលមើលថ្មីនឹងបង្ហាញបន្ទាប់ពីរៀបចំរួច។')}</p>
+                <p className="mt-1">{tx('Run supabase/website_analytics_setup.sql in the Supabase SQL Editor, then refresh this page. New visits will appear after setup.', 'ដំណើរការឯកសារ supabase/website_analytics_setup.sql ក្នុង Supabase SQL Editor រួចចុចផ្ទុកឡើងវិញ។ ការចូលមើលថ្មីនឹងបង្ហាញបន្ទាប់ពីរៀបចំរួច។')}</p>
                 <p className="mt-2 break-words text-xs text-amber-800">{analyticsError}</p>
               </div> : <>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -2207,7 +2284,7 @@ export default function App() {
                   <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><HardDrive className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Data & storage health', 'សុខភាពទិន្នន័យ និងឃ្លាំងផ្ទុក')}</h2>
                   <p className="mt-1 text-sm text-slate-500">{tx('Check database setup and see how many pictures are stored in Supabase.', 'ពិនិត្យការរៀបចំមូលដ្ឋានទិន្នន័យ និងចំនួនរូបភាពដែលរក្សាទុកក្នុង Supabase។')}</p>
                 </div>
-                <button type="button" onClick={() => void handleDownloadBackup()} disabled={backupLoading || !supabaseClient} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-wait disabled:opacity-60">
+                <button type="button" onClick={() => void handleDownloadBackup()} disabled={backupLoading || !Boolean(supabaseClient)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-green-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-800 disabled:cursor-wait disabled:opacity-60">
                   <Download className="h-4 w-4" aria-hidden="true" />{backupLoading ? tx('Preparing backup…', 'កំពុងរៀបចំការបម្រុងទុក…') : tx('Download backup', 'ទាញយកការបម្រុងទុក')}
                 </button>
                 <button type="button" onClick={() => void refreshDataHealth()} disabled={dataHealthLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
@@ -2224,10 +2301,11 @@ export default function App() {
               {!dataHealth && dataHealthLoading && <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{tx('Checking your database and image buckets…', 'កំពុងពិនិត្យមូលដ្ឋានទិន្នន័យ និងឃ្លាំងរូបភាព…')}</div>}
 
               {dataHealth && <>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {[
                     { label: tx('Products table', 'តារាងផលិតផល'), check: dataHealth.products, icon: Package, setup: 'product_catalog_setup.sql' },
                     { label: tx('Website content', 'មាតិកាគេហទំព័រ'), check: dataHealth.siteContent, icon: Database, setup: 'site_content_storage_setup.sql' },
+                    { label: tx('Inquiries', 'សំណើទំនាក់ទំនង'), check: dataHealth.inquiries, icon: MessageCircle, setup: 'inquiries_setup.sql' },
                     { label: tx('Traffic events', 'សកម្មភាពអ្នកចូលមើល'), check: dataHealth.events, icon: Eye, setup: 'website_analytics_setup.sql' }
                   ].map((item) => <div key={item.label} className={`rounded-2xl border p-4 ${item.check.error ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-white'}`}>
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-800"><item.icon className="h-4 w-4 text-green-700" aria-hidden="true" />{item.label}</div>
@@ -2395,6 +2473,7 @@ export default function App() {
               )}
             </div>
             </>}
+            {activeAdminSection === 'catalogs' && <CatalogStudioAdmin />}
               </div>
               </div>
           </div>

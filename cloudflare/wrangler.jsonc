@@ -1,0 +1,20 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "vistalab-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-15",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vistalab-prod",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "vistalab-media" }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://vistalabcambodia.github.io"
+  }
+}

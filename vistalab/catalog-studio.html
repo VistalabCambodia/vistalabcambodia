@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalog Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px Arial,"Noto Sans Khmer",sans-serif;background:#e9ecf2;color:#1f2430}
+button{font:inherit;cursor:pointer;border:0;border-radius:7px;padding:8px 11px;background:#252d86;color:#fff;font-weight:700}
+button.s{background:#e7eaf6;color:#252d86}button.r{background:#fdecee;color:#b3202e}
+input,select{font:inherit;border:1px solid #c9cfdb;border-radius:6px;padding:7px;background:#fff;min-width:0}
+#app{display:grid;grid-template-columns:minmax(440px,660px) 1fr;height:100vh}
+#left{overflow:auto;padding:14px;background:#fff;border-right:1px solid #d5dae4}
+#right{display:flex;flex-direction:column;min-width:0}
+h3{margin:18px 0 8px;font-size:14px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.pg button{background:#eef0f6;color:#222;font-weight:600}.pg button.on{background:#252d86;color:#fff}
+#fmt{position:sticky;top:-14px;z-index:5;background:#f3f5fb;border:1px solid #d5dae4;border-radius:8px;padding:6px;margin-bottom:10px;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+#fmt button{padding:5px 10px;background:#fff;color:#222;border:1px solid #c9cfdb}#fmt input[type=color]{width:34px;height:30px;padding:1px}
+.rt{border:1px solid #c9cfdb;border-radius:6px;padding:6px;min-height:34px;background:#fff;outline-color:#252d86;margin-bottom:6px}
+.rt:empty:before{content:attr(data-ph);color:#9aa}.nm{min-width:170px}
+.wrap{overflow:auto;border:1px solid #dde1ea;border-radius:8px}.tbx{border:2px solid #e3e6ef;border-radius:10px;padding:10px;margin-bottom:12px}
+table.ed{border-collapse:collapse}.ed th{font-size:11px;background:#f3f5f9;padding:5px;text-align:left;white-space:nowrap}.ed td{padding:3px;border-top:1px solid #eceff4;vertical-align:top}
+.ed input{padding:5px}.mv{display:flex;flex-direction:column;gap:2px}.mv button{padding:1px 6px;font-size:9px}
+.th{width:42px;height:42px;border:1px dashed #aab;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;color:#889}.th img{width:100%;height:100%;object-fit:contain}
+.x{padding:5px 8px}.cg{border-collapse:collapse}.cg td{padding:2px;vertical-align:top}.cg .rt{min-width:100px;margin:0}.hint{font-size:11px;color:#6b7482;margin:4px 0}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #d5dae4}
+.bar .tab{background:#eef0f6;color:#222}.bar .tab.on{background:#252d86;color:#fff}.sp{flex:1}
+#stage{flex:1;overflow:auto;padding:14px}#holder{margin:auto;box-shadow:0 3px 14px #0003}#scale{transform-origin:0 0}
+#toast{position:fixed;bottom:16px;right:16px;background:#20243a;color:#fff;padding:10px 14px;border-radius:8px;display:none;z-index:9}
+/* ---------- A4 sheet ---------- */
+.sheet{background:#fff;color:#000;overflow:hidden;position:relative}
+.a4{width:794px;height:1123px;padding:34px 40px;--ph:230px;--rp:13px}
+.gal{border:5px solid;padding:10px 8px 6px}.cells{display:grid;gap:8px}
+.ph{height:var(--ph);display:flex;align-items:flex-end;justify-content:center}.ph img{max-width:100%;max-height:100%;object-fit:contain}
+.cells b,.codes b{display:block;text-align:center;font:700 24px "Times New Roman",serif;margin-top:6px}
+.grp{width:100%;max-height:380px;object-fit:contain;display:block}.codes{display:flex;justify-content:space-around}
+.k{font:46px/1.4 "Noto Serif Khmer","Khmer OS",serif;text-align:center;margin-top:26px}
+.e{font:italic 700 34px "Segoe Script","Brush Script MT",cursive;text-align:center;margin-top:4px}
+.h2{margin-top:22px;font:700 20px Arial,sans-serif}
+.t{width:100%;border-collapse:collapse;margin-top:12px;font:15px "Arial Narrow",Arial,sans-serif}
+.t th,.t td{border:2px solid #000;padding:var(--rp) 8px;text-align:center}.t th{font-size:14px}
+.t td:nth-child(2){text-align:left}.t td:first-child{font:700 20px "Times New Roman",serif}
+.t.c td,.t.c td:first-child,.t.c td:nth-child(2){font:16px Arial,sans-serif;text-align:center}.t.c th{font-size:15px}
+.ft{position:absolute;left:40px;right:40px;bottom:22px;text-align:center;font-size:13px;color:#444}
+@media(max-width:1000px){#app{display:block;height:auto}#left{border:0}#stage{height:80vh}}
+@media print{#left,.bar,#toast{display:none!important}body{background:#fff}#app{display:block;height:auto}#stage{overflow:visible;padding:0}#holder{box-shadow:none;width:794px!important;height:1123px!important}#scale{transform:none!important}@page{size:A4 portrait;margin:0}}
+
+/* ---------- neat UI v2 ---------- */
+body{background:#eef1f7;font-family:"Segoe UI",Arial,"Noto Sans Khmer",sans-serif}
+button{transition:.15s;box-shadow:0 1px 2px #0002}button:hover{filter:brightness(1.12);transform:translateY(-1px)}button:active{transform:none}
+input:focus,select:focus,.rt:focus{outline:2px solid #6f7be0;outline-offset:0;border-color:#6f7be0}
+#left{background:#f5f6fb;padding:0 14px 24px}
+#lh{position:sticky;top:0;z-index:6;background:#f5f6fb;margin:0 -14px 12px;padding:12px 14px 10px;border-bottom:1px solid #dfe3ee}
+.brand{font-weight:800;font-size:18px;color:#252d86;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.brand small{font-weight:600;font-size:11px;color:#16845b;background:#e3f5ec;padding:3px 9px;border-radius:99px}
+#fmt{position:static;margin:0 0 8px}
+#lh>.hint{display:none}
+#nav{display:flex;gap:4px}#nav button{flex:1;white-space:nowrap;background:#e6e9f4;color:#4b5470;box-shadow:none;font-size:13px;padding:9px 6px}#nav button.on{background:#252d86;color:#fff}
+.pnl{display:none;background:#fff;border:1px solid #dfe3ee;border-radius:12px;padding:14px;box-shadow:0 1px 4px #0001}.pnl.on{display:block}
+.pnl>h3{margin:0 0 12px;font-size:16px;color:#252d86}
+.tbx{background:#fafbfe}.ed tr:nth-child(even) td{background:#fafbfe}.ed th{position:sticky;top:0;background:#eef0f8}
+.bar{box-shadow:0 1px 6px #0001}.bar .tab{display:flex;align-items:center;box-shadow:none}
+.tab:before{content:"";width:10px;height:10px;border-radius:50%;margin-right:7px;background:var(--c)}
+.tab[data-r=pp]{--c:var(--c-pp,#e11d2e)}.tab[data-r=prov]{--c:var(--c-prov,#252d86)}.tab[data-r=fb]{--c:var(--c-fb,#16845b)}
+.tab.on:before{box-shadow:0 0 0 2px #fff}
+#stage{background:#dde1ec}#holder{box-shadow:0 6px 24px #0004}
+@media(max-width:1000px){#lh{position:static}}
+
+/* ---------- dashboard ---------- */
+#dash{display:none;grid-template-columns:230px 1fr;min-height:100vh}body.dv #dash{display:grid}body.dv #app{display:none}
+#dside{background:#171b35;color:#fff;padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.dbrand{font-weight:800;font-size:18px;margin-bottom:14px}.dbrand small{display:block;font-weight:400;font-size:12px;color:#aab2d8;margin-top:4px}
+#dside button{background:transparent;color:#d6dbf5;text-align:left;box-shadow:none;padding:11px 12px;font-weight:600}#dside button.on,#dside button:hover{background:#2c3468}
+#dmain{padding:22px 26px;min-width:0}#dmain header{display:flex;justify-content:space-between;align-items:center}#dmain h1{margin:0;font-size:24px}#dmain p{margin:4px 0 16px;color:#6b7482}#dmain h2{font-size:17px;margin:26px 0 10px}
+.ok{background:#e3f5ec;color:#0a7a4d;font-size:12px;padding:6px 12px;border-radius:99px}
+#dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.st{background:#fff;border:1px solid #dfe3ee;border-radius:12px;padding:16px}.st span{font-size:12px;color:#6b7482}.st b{display:block;font-size:28px;margin-top:6px}.st.warn{border-color:#f0a9b0;background:#fff6f7;cursor:pointer}
+#dcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.pc{background:#fff;border:1px solid #dfe3ee;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.thumb{width:160px;height:224px;overflow:hidden;border:1px solid #e2e5ee;margin:0 auto;position:relative;pointer-events:none}.thumb>div{transform:scale(.2);transform-origin:0 0;width:794px}
+.pc small{color:#6b7482}.pc .row button{padding:6px 8px;font-size:12px}
+#dlist{border-collapse:collapse;width:100%;background:#fff}#dlist th{background:#eef0f8;font-size:12px;text-align:left;padding:8px;position:sticky;top:0;z-index:1}#dlist td{padding:4px 6px;border-top:1px solid #eceff4}
+#dlist input{width:100%;padding:6px}#dlist input.warn{border-color:#e23b4b;background:#fff3f4}#dlist td:nth-child(3){min-width:240px}#dlist td:nth-child(n+4):nth-child(-n+8){min-width:78px}
+.dtool{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.dtool input{min-width:200px}
+@media(max-width:900px){#dash{grid-template-columns:1fr}#dside{position:static;height:auto;flex-direction:row;flex-wrap:wrap}}
+/* Staff mode is read-only and exposes only catalog/page selection and JPG export. */
+body.staff-viewer #app{display:flex;height:calc(100vh - 8px)}
+body.staff-viewer #left,body.staff-viewer #dash{display:none!important}
+body.staff-viewer #right{width:100%;height:100%}
+body.staff-viewer .bar #png,body.staff-viewer .bar #pdf,body.staff-viewer .bar #all{display:none!important}
+body.staff-viewer #viewerPage{display:block;min-width:180px}
+body:not(.staff-viewer) #viewerPage,body:not(.staff-viewer) #jpg{display:none}
+body.staff-viewer #jpg{background:#16845b}
+@media(max-width:700px){body.staff-viewer .bar{gap:5px;padding:8px}body.staff-viewer #viewerPage{min-width:120px;flex:1}body.staff-viewer .bar .tab{padding:7px 6px;font-size:11px}body.staff-viewer #stage{padding:8px}}
+</style></head><body>
+<div id="app">
+<div id="left">
+ <div id="fmt">
+  <button data-c="bold"><b>B</b></button><button data-c="italic"><i>I</i></button><button data-c="underline"><u>U</u></button>
+  <input type="color" id="fc" value="#000000" title="Text color">
+  <select id="fs"><option value="">Size</option><option value="2">Small</option><option value="3">Normal</option><option value="5">Large</option><option value="6">X-Large</option><option value="7">XX-Large</option></select>
+  <button data-c="justifyLeft">⬅</button><button data-c="justifyCenter">⬌</button><button data-c="justifyRight">➡</button><button data-c="removeFormat">Clear</button>
+ </div>
+ <div class="hint" style="margin-top:-4px">Click in any text box (title, description, table heading), select words, then use this bar. Press Enter for a new line.</div>
+ <h3>1. Catalog pages</h3>
+ <div class="pg" id="pl"></div>
+ <div class="row"><button class="s" id="np">+ New page</button><button class="s" id="dp">Duplicate</button><button class="r" id="xp">Delete page</button></div>
+ <h3>2. Titles &amp; photo</h3>
+ <div class="rt" id="kh" contenteditable="true" data-rt="kh" data-ph="Khmer title"></div>
+ <div class="row" style="margin-bottom:8px"><input id="kf" list="kfl" placeholder="Khmer font (type a name)" style="flex:1"><input id="ks" type="number" placeholder="Size px" style="width:84px"></div>
+ <div class="rt" id="en" contenteditable="true" data-rt="en" data-ph="English title"></div>
+ <div class="row" style="margin-bottom:8px"><input id="ef" list="efl" placeholder="English font (type a name)" style="flex:1"><input id="es" type="number" placeholder="Size px" style="width:84px"></div>
+ <datalist id="kfl"><option>Khmer OS Muol Light</option><option>Khmer OS Muol</option><option>Khmer OS Battambang</option><option>Khmer OS Bokor</option><option>Khmer OS Siemreap</option><option>Khmer OS Content</option><option>Khmer UI</option><option>Leelawadee UI</option><option>Noto Serif Khmer</option><option>Noto Sans Khmer</option></datalist>
+ <datalist id="efl"><option>Segoe Script</option><option>Brush Script MT</option><option>Lucida Handwriting</option><option>Monotype Corsiva</option><option>Ink Free</option><option>Segoe Print</option><option>Edwardian Script ITC</option><option>Mistral</option><option>Georgia</option><option>Times New Roman</option><option>Arial</option><option>Impact</option></datalist>
+ <div class="hint">Any font installed on this computer works (same as Photoshop) — just type its exact name. Leave empty for the default.</div>
+ <div class="row"><button class="s" id="gp">Upload group photo (all bottles together)</button><button class="r" id="gc">Remove</button></div>
+ <div class="hint">Group photo is optional. Without it, the photos from each product row are used.</div>
+ <h3>3. Tables &amp; prices</h3>
+ <div id="tables"></div>
+ <button id="at">+ Add product table</button> <button id="ad" class="s">+ Add discount table</button>
+ <div class="hint">A discount table is free text (any columns and rows, e.g. Quantity / Discount) and can be shown on only some price lists.</div>
+ <div class="hint">Prices are per unit. Carton price = unit × pack (automatic). Facebook $ is optional: if empty, the Phnom Penh price is used.</div>
+ <h3>4. Change many prices at once</h3>
+ <div class="row"><input id="amt" type="number" step="any" placeholder="e.g. 5 or -0.10" style="width:110px"><select id="mode"><option>%</option><option>$</option></select>
+ <select id="reg"><option value="all">All prices</option><option value="pp">Phnom Penh</option><option value="prov">Provinces</option><option value="fb">Facebook</option></select>
+ <label><input type="checkbox" id="allp"> all pages</label><button id="ap">Apply</button></div>
+ <div class="hint">Example: 5 + % = raise by 5%. Use a minus sign to lower.</div>
+ <h3>5. Footer, colors &amp; backup</h3>
+ <input id="foot" placeholder="Footer text (phone, address…)" style="width:100%;margin-bottom:8px">
+ <div class="row">Border color: Phnom Penh <input type="color" data-col="pp"> Provinces <input type="color" data-col="prov"> Facebook <input type="color" data-col="fb"></div>
+ <div class="row" style="margin-top:10px"><button class="s" id="bk">Download backup</button><button class="s" id="rs">Restore backup</button></div>
+ <div class="hint">Everything auto-saves in this browser. Download a backup now and then.</div>
+</div>
+<div id="right">
+ <div class="bar"><select id="viewerPage" aria-label="Catalog page"></select><button class="tab" data-r="pp">Phnom Penh</button><button class="tab" data-r="prov">Provinces</button><button class="tab" data-r="fb">Facebook</button><span class="sp"></span>
+ <button id="jpg">Download JPG</button><button id="png">Save PNG</button><button class="s" id="pdf">Print / PDF (A4)</button><button class="s" id="all">Export ALL pages</button></div>
+ <div id="stage"><div id="holder"><div id="scale"></div></div></div>
+</div></div>
+<div id="dash"><aside id="dside"><div class="dbrand">Catalog Studio<small>Product catalog generator</small></div>
+ <button class="on">▦ Dashboard</button><button id="dgo">✎ Open editor</button><button id="dexp">⇩ Export all PNG</button><button id="dbk">⇪ Download backup</button><button id="drs">⇧ Restore backup</button></aside>
+ <main id="dmain"><header><div><h1>Dashboard</h1><p>Manage all products, prices and catalog views in one place.</p></div><span class="ok">● Auto-saved</span></header>
+ <div id="dstats"></div>
+ <h2>Catalog pages &amp; views</h2><div id="dcards"></div>
+ <h2>All products</h2>
+ <div class="dtool"><input id="dq" placeholder="Search code or name…"><select id="dpg"></select><select id="dft"><option value="">All products</option><option value="price">Missing a price</option><option value="photo">No photo</option></select>
+ <span style="flex:1"></span><select id="dnp"></select><button id="dnew">+ New product</button></div>
+ <div class="wrap" style="max-height:60vh"><table id="dlist"><thead><tr><th>Page</th><th>Code</th><th>Description</th><th>Pack</th><th>Size</th><th>Phnom Penh $</th><th>Province $</th><th>Facebook $</th><th></th></tr></thead><tbody></tbody></table></div>
+ <div class="hint">Change prices right here. For fonts, bold or photos, press ✎ to open the editor. Facebook $ empty = uses Phnom Penh price.</div>
+ </main></div>
+<input type="file" id="file" hidden><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const m=n=>"$ "+(+n||0).toFixed(2),KEY="catalogStudioV3";
+/* safe rich text */
+const OK={B:1,I:1,U:1,STRONG:1,EM:1,BR:1,DIV:1,P:1,SPAN:1,FONT:1},SP=["color","font-size","font-weight","font-style","text-decoration","text-align","font-family"];
+function clean(h){const t=document.createElement("template");t.innerHTML=h||"";(function w(n){[...n.childNodes].forEach(c=>{if(c.nodeType==3)return;if(c.nodeType!=1||!OK[c.tagName]){c.remove();return}
+ [...c.attributes].forEach(a=>{if(a.name=="style")c.setAttribute("style",a.value.split(";").filter(s=>SP.includes(s.split(":")[0].trim().toLowerCase())&&!/url|expression/i.test(s)).join(";"));else if(!(c.tagName=="FONT"&&["color","size","face"].includes(a.name)))c.removeAttribute(a.name)});w(c)})})(t.content);return t.innerHTML}
+const tx=h=>{const d=document.createElement("div");d.innerHTML=clean(h);return d.textContent};
+const blank=()=>({code:"",name:"",pack:12,size:"",pp:"",prov:"",fb:"",photo:""});
+const seed=()=>({cur:0,footer:"",colors:{pp:"#e11d2e",prov:"#252d86",fb:"#16845b"},pages:[{khmer:"សាប៊ូកក់ដុស",english:"Laffair Be Love Baby Shampoo&amp;Bath",group:"",kf:"",ks:"",ef:"",es:"",tables:[{head:"",items:[
+["007509","Laffair Be Love Shampoo Top To Toe","850ml",4.4,4],["007493","Laffair Be Love Shampoo Top To Toe","500ml",3,2.7],["007486","Laffair Be Love Shampoo Top To Toe","250ml",2.1,1.9],["007462","Laffair Baby bath &amp; Shampoo","250ml",1.8,1.6],["007479","Laffair Be Love Baby Shampoo Mild","750ml",4.3,3.9]
+].map(([code,name,size,pp,prov])=>({...blank(),code,name,size,pp:pp.toFixed(2),prov:prov.toFixed(2)}))}]}]});
+let D;for(const k of[KEY,"catalogStudioV2"]){try{D=JSON.parse(localStorage.getItem(k));if(D)break}catch(e){}}
+function fix(){D=D&&D.pages&&D.pages.length?D:seed();D.colors=D.colors||seed().colors;D.cur=0;D.pages.forEach(p=>{if(p.items&&!p.tables){p.tables=[{head:"",items:p.items}];delete p.items}(p.tables||[]).forEach(t=>{if(t.cols&&t.cols.some(c=>c&&typeof c=="object")){t.xc=t.cols;delete t.cols}});p.tables=p.tables||[{head:"",items:[blank()]}]})}
+fix();let R="pp",T;const P=()=>D.pages[D.cur],all=p=>p.tables.flatMap(t=>t.items||[]);
+function save(){clearTimeout(T);T=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast("Browser storage full — saving to account storage")};parent.postMessage({type:"catalog-studio:update",data:D},location.origin)},300)}
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",2500)}
+function pick(cb,acc="image/*"){const f=$("#file");f.accept=acc;f.onchange=()=>{if(f.files[0])cb(f.files[0]);f.value=""};f.click()}
+function readImg(file,max,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.9))};im.src=r.result};r.readAsDataURL(file)}
+/* ---------- sheet (same style for all 3 price lists) ---------- */
+function sheet(p,r){const c=D.colors[r],items=all(p),n=items.length+2*(p.tables.length-1)+p.tables.reduce((a,t)=>a+(t.cols&&(!t.show||t.show[r])?t.rows.length+1:0),0),pr=i=>r=="pp"?i.pp:r=="prov"?i.prov:(i.fb||i.pp),cols=Math.min(Math.max(items.length,1),6);
+ const g=p.group?`<img class="grp" src="${p.group}"><div class="codes">${items.map(i=>`<b>${esc(i.code)}</b>`).join("")}</div>`
+ :`<div class="cells" style="grid-template-columns:repeat(${cols},1fr)">${items.map(i=>`<div><div class="ph">${i.photo?`<img src="${i.photo}">`:""}</div><b>${esc(i.code)}</b></div>`).join("")}</div>`;
+ const st=(f,s)=>(f?`font-family:'${esc(f)}',serif;`:"")+(s?`font-size:${+s}px;`:"");
+ const ctb=t=>t.show&&!t.show[r]?"":`${tx(t.head)?`<div class="h2">${clean(t.head)}</div>`:""}<table class="t c"><tr>${t.cols.map(h=>`<th>${clean(h)}</th>`).join("")}</tr>${t.rows.map(rw=>`<tr>${t.cols.map((_,ci)=>`<td>${clean(rw[ci])}</td>`).join("")}</tr>`).join("")}</table>`;
+ const tb=t=>t.cols?ctb(t):`${tx(t.head)?`<div class="h2">${clean(t.head)}</div>`:""}<table class="t"><tr><th>PRODUCT<br>CODE</th><th>DESCRIPTION</th><th>PACKING<br>SIZE</th>${(t.xc||[]).map(c=>`<th>${esc(c.name).toUpperCase()}</th>`).join("")}<th>PRICE<br>UNIT</th><th>PRICE<br>CTN</th></tr>
+ ${t.items.map(i=>`<tr><td>${esc(i.code)}</td><td>${clean(i.name)}</td><td>${esc(i.pack)} x ${esc(i.size)}</td>${(t.xc||[]).map(c=>`<td>${esc((i.x||{})[c.id])}</td>`).join("")}<td>${m(pr(i))}</td><td>${m(pr(i)*(+i.pack||1))}</td></tr>`).join("")}</table>`;
+ return `<div class="sheet a4" id="sheet" style="--rp:${n<=6?13:n<=9?8:n<=13?5:3}px;--ph:${n<=6?230:190}px"><div class="gal" style="border-color:${c}">${g}</div>
+ <div class="k" style="${st(p.kf,p.ks)}">${clean(p.khmer)}</div><div class="e" style="${st(p.ef,p.es)}">${clean(p.english)}</div>${p.tables.map(tb).join("")}
+ <div class="ft">${esc(D.footer)}</div></div>`}
+let viewerMode=false;
+function draw(){["pp","prov","fb"].forEach(k=>document.documentElement.style.setProperty("--c-"+k,D.colors[k]));$("#scale").innerHTML=sheet(P(),R);document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.r==R));if(viewerMode){const s=$("#viewerPage"),v=String(D.cur);s.innerHTML=D.pages.map((p,i)=>`<option value="${i}">${esc(tx(p.english)||`Catalog page ${i+1}`)}</option>`).join("");s.value=v}fit()}
+function fit(){const s=$("#sheet"),w=s.offsetWidth;if(!w)return;const h=s.offsetHeight,k=Math.min(1,($("#stage").clientWidth-30)/w);$("#scale").style.transform=`scale(${k})`;$("#holder").style.cssText=`width:${w*k}px;height:${h*k}px`}
+addEventListener("resize",fit);
+/* ---------- rich text ---------- */
+let LE=null,LR=null;
+document.addEventListener("selectionchange",()=>{const s=getSelection();if(!s.rangeCount)return;const n=s.anchorNode,el=n&&(n.nodeType==1?n:n.parentElement);const b=el&&el.closest("[data-rt]");if(b){LE=b;LR=s.getRangeAt(0).cloneRange()}});
+function rtSet(el){const h=el.innerHTML,d=el.dataset,p=P();
+ if(d.rt=="kh")p.khmer=h;else if(d.rt=="en")p.english=h;else if(d.rt=="name")p.tables[+d.t].items[+d.i].name=h;else if(d.rt=="head")p.tables[+d.t].head=h;else if(d.rt=="cc")p.tables[+d.t].rows[+d.r][+d.c]=h;else if(d.rt=="ch")p.tables[+d.t].cols[+d.c]=h;
+ save();draw();if(d.rt=="kh"||d.rt=="en")pl()}
+document.addEventListener("input",e=>{const el=e.target.closest&&e.target.closest("[data-rt]");if(el)rtSet(el)});
+document.addEventListener("paste",e=>{const el=e.target.closest&&e.target.closest("[data-rt]");if(!el)return;e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"))});
+function cmd(c,v){if(!LE)return toast("Click inside a text box and select some text first");LE.focus();const s=getSelection();s.removeAllRanges();s.addRange(LR);document.execCommand("styleWithCSS",false,true);document.execCommand(c,false,v);rtSet(LE)}
+document.execCommand("defaultParagraphSeparator",false,"br");
+$("#fmt").onmousedown=e=>{if(e.target.tagName=="BUTTON")e.preventDefault()};
+$("#fmt").onclick=e=>{const b=e.target.closest("[data-c]");if(b)cmd(b.dataset.c)};
+$("#fc").oninput=e=>cmd("foreColor",e.target.value);$("#fs").onchange=e=>{if(e.target.value)cmd("fontSize",e.target.value);e.target.value=""};
+/* ---------- editor ---------- */
+function pl(){$("#pl").innerHTML=D.pages.map((p,i)=>`<button class="${i==D.cur?"on":""}" data-p="${i}">${i+1}. ${esc((tx(p.english)||tx(p.khmer)||"New page").slice(0,22))}</button>`).join("")}
+const cted=(t,ti)=>{const s=t.show||{pp:1,prov:1,fb:1};return `<div class="tbx" style="background:#fffaf0"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Table ${ti+1} — Discount / custom</b><button class="r x" data-a="xt" data-t="${ti}">Delete table</button></div>
+<div class="rt" contenteditable="true" data-rt="head" data-t="${ti}" data-ph="Table heading (e.g. DISCOUNT)">${clean(t.head)}</div>
+<div class="wrap"><table class="cg"><tr>${t.cols.map((h,ci)=>`<td><div class="rt" contenteditable="true" data-rt="ch" data-t="${ti}" data-c="${ci}" data-ph="Column title" style="font-weight:700;background:#f3f5f9">${clean(h)}</div><button class="r x" data-a="xc" data-t="${ti}" data-c="${ci}">✕ column</button></td>`).join("")}<td></td></tr>
+${t.rows.map((rw,ri)=>`<tr>${t.cols.map((_,ci)=>`<td><div class="rt" contenteditable="true" data-rt="cc" data-t="${ti}" data-r="${ri}" data-c="${ci}">${clean(rw[ci])}</div></td>`).join("")}<td><button class="r x" data-a="xr" data-t="${ti}" data-r="${ri}">✕</button></td></tr>`).join("")}</table></div>
+<div class="row" style="margin-top:6px"><button class="s" data-a="cr" data-t="${ti}">+ Row</button><button class="s" data-a="cc" data-t="${ti}">+ Column</button><span class="hint">Show on:</span>${["pp","prov","fb"].map((k,x)=>`<label><input type="checkbox" data-show="${k}" data-t="${ti}" ${s[k]?"checked":""}> ${["Phnom Penh","Provinces","Facebook"][x]}</label>`).join(" ")}</div></div>`};
+const cx=(t,it,d)=>(t.xc||[]).map(c=>`<td><input ${d} data-x="${c.id}" value="${esc((it.x||{})[c.id])}" style="width:90px"></td>`).join("");
+function ed(){pl();const p=P();$("#kh").innerHTML=clean(p.khmer);$("#en").innerHTML=clean(p.english);$("#kf").value=p.kf||"";$("#ks").value=p.ks||"";$("#ef").value=p.ef||"";$("#es").value=p.es||"";$("#foot").value=D.footer;
+ document.querySelectorAll("[data-col]").forEach(i=>i.value=D.colors[i.dataset.col]);
+ const cols=[["code",64],["pack",44],["size",58],["pp",58],["prov",58],["fb",58]];
+ $("#tables").innerHTML=p.tables.map((t,ti)=>t.cols?cted(t,ti):`<div class="tbx"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Table ${ti+1}</b><button class="r x" data-a="xt" data-t="${ti}">Delete table</button></div>
+ <div class="rt" contenteditable="true" data-rt="head" data-t="${ti}" data-ph="Table heading (optional, e.g. Baby Powder)">${clean(t.head)}</div>
+ <div class="wrap"><table class="ed"><thead><tr><th></th><th>Photo</th><th>Code</th><th>Description</th><th>Pack</th><th>Size</th>${(t.xc||[]).map(c=>`<th><input class="ch" data-t="${ti}" data-ch="${c.id}" value="${esc(c.name)}" style="width:90px"><button class="r x" data-a="rx" data-t="${ti}" data-c="${c.id}" title="Remove column">✕</button></th>`).join("")}<th>Phnom Penh $</th><th>Province $</th><th>Facebook $</th><th></th></tr></thead><tbody>
+ ${t.items.map((it,i)=>{const d=`data-t="${ti}" data-i="${i}"`;return `<tr><td><div class="mv"><button data-a="up" ${d}>▲</button><button data-a="dn" ${d}>▼</button></div></td><td><div class="th" data-a="ph" ${d}>${it.photo?`<img src="${it.photo}">`:"+"}</div></td>
+ <td><input ${d} data-k="code" value="${esc(it.code)}" style="width:64px"></td><td><div class="rt nm" contenteditable="true" data-rt="name" ${d} data-ph="Description">${clean(it.name)}</div></td>
+ ${cols.slice(1).map(([k,w])=>(k=="pp"?cx(t,it,d):"")+`<td><input ${d} data-k="${k}" value="${esc(it[k])}" style="width:${w}px"${k=="size"?"":' type="number" step="any"'}></td>`).join("")}<td><button class="r x" data-a="del" ${d}>✕</button></td></tr>`}).join("")}
+ </tbody></table></div><div class="row" style="margin-top:6px"><button class="s" data-a="ar" data-t="${ti}">+ Add product</button><button class="s" data-a="ax" data-t="${ti}">+ Add column</button></div></div>`).join("")}
+$("#pl").onclick=e=>{const b=e.target.closest("[data-p]");if(b){D.cur=+b.dataset.p;save();ed();draw()}};
+$("#np").onclick=()=>{D.pages.push({khmer:"",english:"New catalog page",group:"",kf:"",ks:"",ef:"",es:"",tables:[{head:"",items:[blank()]}]});D.cur=D.pages.length-1;save();ed();draw()};
+$("#dp").onclick=()=>{D.pages.splice(D.cur+1,0,JSON.parse(JSON.stringify(P())));D.cur++;save();ed();draw();toast("Page duplicated")};
+$("#xp").onclick=()=>{if(D.pages.length<2)return toast("You need at least one page");if(confirm("Delete this whole page?")){D.pages.splice(D.cur,1);D.cur=Math.max(0,D.cur-1);save();ed();draw()}};
+[["kf","kf"],["ks","ks"],["ef","ef"],["es","es"]].forEach(([id,k])=>$("#"+id).oninput=e=>{P()[k]=e.target.value;save();draw()});
+$("#foot").oninput=e=>{D.footer=e.target.value;save();draw()};
+document.querySelectorAll("[data-col]").forEach(i=>i.oninput=()=>{D.colors[i.dataset.col]=i.value;save();draw()});
+$("#gp").onclick=()=>pick(f=>readImg(f,1400,d=>{P().group=d;save();draw();toast("Group photo added")}));$("#gc").onclick=()=>{P().group="";save();draw()};
+$("#at").onclick=()=>{P().tables.push({head:"",items:[blank()]});save();ed();draw();toast("New table added")};
+$("#ad").onclick=()=>{P().tables.push({head:"DISCOUNT",cols:["Quantity","Discount"],rows:[["10 ctn","3%"],["20 ctn","5%"],["50 ctn","8%"]],show:{pp:1,prov:1,fb:1}});save();ed();draw();toast("Discount table added")};
+$("#tables").onchange=e=>{const t=e.target;if(t.dataset.show){const tb=P().tables[+t.dataset.t];tb.show=tb.show||{pp:1,prov:1,fb:1};tb.show[t.dataset.show]=t.checked?1:0;save();draw()}};
+$("#tables").oninput=e=>{const t=e.target,T0=P().tables[+t.dataset.t];if(t.dataset.x){const it=T0.items[+t.dataset.i];(it.x=it.x||{})[t.dataset.x]=t.value;save();draw();return}if(t.dataset.ch){T0.xc.find(c=>c.id==t.dataset.ch).name=t.value;save();draw();return}if(t.dataset.k){P().tables[+t.dataset.t].items[+t.dataset.i][t.dataset.k]=t.value;save();draw()}};
+$("#tables").onclick=e=>{const b=e.target.closest("[data-a]");if(!b)return;const ti=+b.dataset.t,i=+b.dataset.i,a=b.dataset.a,tb=P().tables[ti],it=tb.items;
+ if(a=="ph"){pick(f=>readImg(f,500,d=>{it[i].photo=d;save();ed();draw()}));return}
+ if(a=="ar")it.push(blank());else if(a=="ax")tb.xc=(tb.xc||[]).concat({id:"c"+Date.now(),name:"New column"});else if(a=="rx"){if(!confirm("Remove this column?"))return;tb.xc=tb.xc.filter(c=>c.id!=b.dataset.c)}
+ else if(a=="cr")tb.rows.push(tb.cols.map(()=>""));
+ else if(a=="cc"){tb.cols.push("");tb.rows.forEach(w=>w.push(""))}
+ else if(a=="xr")tb.rows.splice(+b.dataset.r,1);
+ else if(a=="xc"){if(tb.cols.length<2)return toast("Keep at least one column");const c=+b.dataset.c;tb.cols.splice(c,1);tb.rows.forEach(w=>w.splice(c,1))}
+ else if(a=="xt"){if(P().tables.length<2)return toast("A page needs at least one table");if(!confirm("Delete this whole table?"))return;P().tables.splice(ti,1)}
+ else if(a=="del"){if(!confirm("Delete this product?"))return;it.splice(i,1)}
+ else if(a=="up"&&i>0)[it[i-1],it[i]]=[it[i],it[i-1]];else if(a=="dn"&&i<it.length-1)[it[i+1],it[i]]=[it[i],it[i+1]];else return;
+ save();ed();draw()};
+$("#ap").onclick=()=>{const v=parseFloat($("#amt").value),pc=$("#mode").value=="%",reg=$("#reg").value;if(!v)return toast("Type an amount first");
+ (($("#allp").checked)?D.pages:[P()]).forEach(p=>all(p).forEach(i=>(reg=="all"?["pp","prov","fb"]:[reg]).forEach(k=>{if(i[k]==="")return;const o=+i[k]||0;i[k]=Math.max(0,pc?o*(1+v/100):o+v).toFixed(2)})));
+ save();ed();draw();toast("Prices updated")};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{R=b.dataset.r;draw()});
+$("#viewerPage").onchange=()=>{D.cur=+$("#viewerPage").value;draw()};
+/* ---------- export ---------- */
+const slug=s=>(tx(s)||"catalog").replace(/[^\w]+/g,"-").replace(/^-|-$/g,"").slice(0,30);
+async function shot(name,format="png"){if(!window.html2canvas){toast("Image export needs internet. Reload and try again.");throw 0}
+ const sc=$("#scale"),t=sc.style.transform;sc.style.transform="none";
+ try{const c=await html2canvas($("#sheet"),{scale:2.5,backgroundColor:"#fff",useCORS:true});const a=document.createElement("a");a.download=name+"."+format;a.href=c.toDataURL(format==="jpg"?"image/jpeg":"image/png",.94);a.click()}finally{sc.style.transform=t}}
+$("#jpg").onclick=()=>shot(`${D.cur+1}-${slug(P().english)}-${R}`,"jpg").then(()=>toast("JPG saved")).catch(()=>{});
+$("#png").onclick=()=>shot(`${slug(P().english)}-${R}`).then(()=>toast("PNG saved")).catch(()=>{});
+$("#pdf").onclick=()=>print();
+$("#all").onclick=async()=>{if(!confirm("Save PNG files for every page and every price list?"))return;const c0=D.cur,r0=R;
+ try{for(let i=0;i<D.pages.length;i++)for(const r of["pp","prov","fb"]){D.cur=i;R=r;draw();await new Promise(z=>setTimeout(z,250));await shot(`${i+1}-${slug(P().english)}-${r}`)}toast("All files saved")}catch(e){}D.cur=c0;R=r0;ed();draw()};
+/* ---------- backup ---------- */
+$("#bk").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(D)],{type:"application/json"}));a.download="catalog-backup-"+new Date().toISOString().slice(0,10)+".json";a.click()};
+$("#rs").onclick=()=>pick(f=>{const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.pages||!d.pages.length)throw 0;if(confirm("Replace everything with this backup?")){D=d;fix();save();ed();draw();if(document.body.classList.contains("dv"))dash()}}catch(e){toast("This is not a valid backup file")}};r.readAsText(f)},".json");
+
+/* ---------- tabs for the left panel ---------- */
+(function(){const L=$("#left"),fmt=$("#fmt"),hs=[...L.querySelectorAll(":scope>h3")],names=["Pages","Titles","Tables","Bulk price","Settings"],lh=document.createElement("div"),nav=document.createElement("div"),groups=[];
+ lh.id="lh";nav.id="nav";lh.innerHTML='<div class="brand"><span>Catalog Studio</span><button class="s" id="tod">▦ Dashboard</button></div>';
+ const hint=fmt.nextElementSibling;L.insertBefore(lh,fmt);lh.append(fmt);if(hint&&hint.classList.contains("hint"))lh.append(hint);lh.append(nav);
+ hs.forEach((h,i)=>{const g=document.createElement("div");g.className="pnl";L.insertBefore(g,h);let n=h;while(n&&(n===h||n.tagName!="H3")){const nx=n.nextSibling;g.appendChild(n);n=nx}groups.push(g);
+  const b=document.createElement("button");b.textContent=names[i]||("Tab "+(i+1));b.onclick=()=>show(i);nav.append(b)});
+ function show(i){groups.forEach((g,k)=>g.classList.toggle("on",k==i));[...nav.children].forEach((b,k)=>b.classList.toggle("on",k==i));L.scrollTop=0}
+ window.showTab=show;show(2)})();
+
+/* ---------- dashboard ---------- */
+function view(v){document.body.classList.toggle("dv",v=="dash");scrollTo(0,0);if(v=="dash")dash();else{ed();draw()}}
+function goEd(pi,r){D.cur=+pi;if(r)R=r;save();view("editor");showTab(2)}
+const pgName=(p,i)=>(i+1)+". "+(tx(p.english)||tx(p.khmer)||"Untitled");
+function dash(){let n=0,pt=0,gt=0,miss=0;
+ D.pages.forEach(p=>p.tables.forEach(t=>{if(t.items){pt++;n+=t.items.length;t.items.forEach(i=>{if(i.pp===""||i.prov==="")miss++})}else gt++}));
+ $("#dstats").innerHTML=`<div class="st"><span>Catalog pages</span><b>${D.pages.length}</b></div><div class="st"><span>Products</span><b>${n}</b></div><div class="st"><span>Tables</span><b>${pt+gt}</b></div><div class="st"><span>Price lists</span><b>3</b></div><div class="st ${miss?"warn":""}" id="dmiss"><span>Missing a price${miss?" — click to see":""}</span><b>${miss}</b></div>`;
+ $("#dcards").innerHTML=D.pages.map((p,i)=>{const c=all(p).length;return `<div class="pc"><div class="thumb"><div>${sheet(p,"pp").replace('id="sheet"',"")}</div></div><b>${esc(pgName(p,i).slice(0,28))}</b><small>${c} products · ${p.tables.length} tables</small>
+ <div class="row"><button data-ed="${i}" data-r="pp">Phnom Penh</button><button data-ed="${i}" data-r="prov">Provinces</button><button data-ed="${i}" data-r="fb">Facebook</button><button class="s" data-ed="${i}">✎ Edit</button></div></div>`}).join("")+`<div class="pc" style="justify-content:center;align-items:center;min-height:200px"><button id="dnp2">+ New catalog page</button></div>`;
+ const ov=$("#dpg").value,nv=$("#dnp").value,opts=D.pages.map((p,i)=>`<option value="${i}">${esc(pgName(p,i).slice(0,32))}</option>`).join("");
+ $("#dpg").innerHTML='<option value="">All pages</option>'+opts;$("#dnp").innerHTML=opts;$("#dpg").value=ov;$("#dnp").value=nv||"0";if($("#dnp").value=="")$("#dnp").value="0";
+ rows()}
+function rows(){const q=$("#dq").value.toLowerCase(),fp=$("#dpg").value,ff=$("#dft").value;let h="";
+ D.pages.forEach((p,pi)=>{if(fp!==""&&+fp!=pi)return;p.tables.forEach((t,ti)=>(t.items||[]).forEach((it,ii)=>{const nm=tx(it.name),d=`data-p="${pi}" data-t="${ti}" data-i="${ii}"`;
+  if(q&&!`${it.code} ${nm}`.toLowerCase().includes(q))return;if(ff=="price"&&it.pp!==""&&it.prov!=="")return;if(ff=="photo"&&(it.photo||p.group))return;
+  const inp=(k,ty,w)=>`<td><input ${d} data-k="${k}" value="${esc(k=="name"?nm:it[k])}"${ty?' type="number" step="any"':""} class="${ty&&k!="fb"&&it[k]===""?"warn":""}"></td>`;
+  h+=`<tr><td title="${esc(pgName(p,pi))}">${pi+1}</td>${inp("code")}${inp("name")}${inp("pack",1)}${inp("size")}${inp("pp",1)}${inp("prov",1)}${inp("fb",1)}<td style="white-space:nowrap"><button class="s x" data-act="ed" ${d} title="Open in editor">✎</button> <button class="s x" data-act="dup" ${d} title="Duplicate">⧉</button> <button class="r x" data-act="del" ${d} title="Delete">✕</button></td></tr>`}))});
+ $("#dlist tbody").innerHTML=h||'<tr><td colspan="9" style="padding:18px;color:#6b7482">No products found.</td></tr>'}
+$("#dlist").oninput=e=>{const t=e.target,k=t.dataset.k;if(!k)return;const it=D.pages[+t.dataset.p].tables[+t.dataset.t].items[+t.dataset.i];
+ if(k=="name"){if(t.value!==tx(it.name))it.name=esc(t.value)}else it[k]=t.value;if(t.type=="number"&&k!="fb")t.classList.toggle("warn",t.value==="");save()};
+$("#dlist").onclick=e=>{const b=e.target.closest("[data-act]");if(!b)return;const pi=+b.dataset.p,ti=+b.dataset.t,ii=+b.dataset.i,tb=D.pages[pi].tables[ti],a=b.dataset.act;
+ if(a=="ed")return goEd(pi);if(a=="dup")tb.items.splice(ii+1,0,JSON.parse(JSON.stringify(tb.items[ii])));else if(a=="del"){if(!confirm("Delete this product?"))return;tb.items.splice(ii,1)}save();dash()};
+$("#dcards").onclick=e=>{const b=e.target.closest("[data-ed]");if(b)return goEd(b.dataset.ed,b.dataset.r);if(e.target.id=="dnp2"){D.pages.push({khmer:"",english:"New catalog page",group:"",kf:"",ks:"",ef:"",es:"",tables:[{head:"",items:[blank()]}]});save();goEd(D.pages.length-1)}};
+$("#dstats").onclick=e=>{if(e.target.closest("#dmiss")){$("#dft").value="price";rows()}};
+["dq","dpg","dft"].forEach(id=>$("#"+id).oninput=rows);
+$("#dnew").onclick=()=>{const p=D.pages[+$("#dnp").value];let t=p.tables.find(t=>t.items);if(!t){t={head:"",items:[]};p.tables.push(t)}t.items.push(blank());save();$("#dq").value="";$("#dft").value="price";dash();toast("New product added — fill in its code and prices")};
+$("#dgo").onclick=()=>view("editor");$("#tod").onclick=()=>view("dash");
+$("#dexp").onclick=()=>{view("editor");setTimeout(()=>$("#all").click(),200)};$("#dbk").onclick=()=>$("#bk").click();$("#drs").onclick=()=>$("#rs").click();
+ ed();draw();view("dash");
+window.addEventListener("message",e=>{if(e.source!==parent)return;if(e.data?.type==="catalog-studio:request"){parent.postMessage({type:"catalog-studio:ready",data:D},location.origin);return}if(e.data?.type!=="catalog-studio:init")return;const d=e.data.data;if(d&&Array.isArray(d.pages)&&d.pages.length){D=d;fix();viewerMode=e.data.viewer===true;if(viewerMode){document.body.classList.add("staff-viewer");document.body.classList.remove("dv");draw()}else{save();ed();draw();if(document.body.classList.contains("dv"))dash()}}});
+parent.postMessage({type:"catalog-studio:ready",data:D},location.origin);
+</script></body></html>

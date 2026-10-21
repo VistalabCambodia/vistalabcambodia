@@ -1,79 +1,73 @@
 import { supabaseClient } from './supabase';
 
 type BackupResult = { filename: string; files: number; bytes: number; warnings: string[] };
-
-async function readAllRows(table: string): Promise<Record<string, unknown>[]> {
-  if (!supabaseClient) throw new Error('Supabase is not configured.');
-  const rows: Record<string, unknown>[] = [];
-  const pageSize = 1000;
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await supabaseClient.from(table).select('*').range(offset, offset + pageSize - 1);
-    if (error) throw new Error(`${table}: ${error.message}`);
-    rows.push(...((data ?? []) as Record<string, unknown>[]));
-    if (!data || data.length < pageSize) return rows;
-  }
-}
-
-async function listBucketFiles(bucket: string): Promise<{ name: string; bytes: number }[]> {
-  if (!supabaseClient) throw new Error('Supabase is not configured.');
-  const files: { name: string; bytes: number }[] = [];
-  const folders = [''];
-  while (folders.length) {
-    const folder = folders.pop()!;
-    for (let offset = 0; ; offset += 100) {
-      const { data, error } = await supabaseClient.storage.from(bucket).list(folder, { limit: 100, offset });
-      if (error) throw new Error(`${bucket}: ${error.message}`);
-      const items = data ?? [];
-      for (const item of items) {
-        const name = folder ? `${folder}/${item.name}` : item.name;
-        if (item.id) files.push({ name, bytes: Number(item.metadata?.size ?? 0) });
-        else folders.push(name);
-      }
-      if (items.length < 100) break;
-    }
-  }
-  return files;
-}
+type StoredImage = { bucket: string; path: string; contentType: string; base64: string };
 
 function toBase64(bytes: Uint8Array): string {
   let binary = '';
   const chunkSize = 0x8000;
-  for (let start = 0; start < bytes.length; start += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(start, start + chunkSize));
-  }
+  for (let start = 0; start < bytes.length; start += chunkSize) binary += String.fromCharCode(...bytes.subarray(start, start + chunkSize));
   return btoa(binary);
+}
+
+async function listBucketFiles(bucket: string): Promise<{ path: string; contentType: string }[]> {
+  if (!supabaseClient) return [];
+  const files: { path: string; contentType: string }[] = [];
+  const folders = [''];
+  while (folders.length) {
+    const folder = folders.pop()!;
+    let offset = 0;
+    while (true) {
+      const { data, error } = await supabaseClient.storage.from(bucket).list(folder, { limit: 100, offset });
+      if (error) throw error;
+      const items = data ?? [];
+      for (const item of items) {
+        const path = folder ? `${folder}/${item.name}` : item.name;
+        if (item.id) files.push({ path, contentType: item.metadata?.mimetype ?? 'application/octet-stream' });
+        else folders.push(path);
+      }
+      if (items.length < 100) break;
+      offset += items.length;
+    }
+  }
+  return files;
 }
 
 export async function downloadSiteBackup(localData: Record<string, unknown>): Promise<BackupResult> {
   if (!supabaseClient) throw new Error('Supabase is not configured.');
   const warnings: string[] = [];
   const tables: Record<string, Record<string, unknown>[]> = {};
-  for (const table of ['products', 'site_content', 'website_events']) {
-    try {
-      tables[table] = await readAllRows(table);
-    } catch (error) {
-      if (table === 'website_events') warnings.push(error instanceof Error ? error.message : 'Traffic history could not be backed up.');
-      else throw error;
-    }
+  for (const table of ['products', 'site_content', 'website_events', 'inquiries', 'price_catalogs']) {
+    const { data, error } = await supabaseClient.from(table).select('*');
+    if (error) warnings.push(`Could not export ${table}: ${error.message}`);
+    else tables[table] = (data ?? []) as Record<string, unknown>[];
   }
 
-  const images: Record<string, { contentType: string; base64: string }> = {};
+  const images: StoredImage[] = [];
   let imageBytes = 0;
-  for (const bucket of ['site-images', 'product-images']) {
-    const files = await listBucketFiles(bucket);
+  for (const bucket of ['product-images', 'site-images']) {
+    let files: { path: string; contentType: string }[];
+    try { files = await listBucketFiles(bucket); }
+    catch (error) {
+      warnings.push(`Could not list ${bucket}: ${error instanceof Error ? error.message : 'Unknown storage error'}`);
+      continue;
+    }
     for (const file of files) {
-      const { data, error } = await supabaseClient.storage.from(bucket).download(file.name);
-      if (error || !data) throw new Error(`Could not back up ${bucket}/${file.name}: ${error?.message ?? 'Download failed.'}`);
+      const { data, error } = await supabaseClient.storage.from(bucket).download(file.path);
+      if (error || !data) {
+        warnings.push(`Could not back up ${bucket}/${file.path}: ${error?.message ?? 'Download failed'}`);
+        continue;
+      }
       const bytes = new Uint8Array(await data.arrayBuffer());
-      images[`${bucket}/${file.name}`] = { contentType: data.type || 'application/octet-stream', base64: toBase64(bytes) };
+      images.push({ bucket, path: file.path, contentType: data.type || file.contentType, base64: toBase64(bytes) });
       imageBytes += bytes.byteLength;
     }
   }
 
   const backup = {
-    format: 'vistalab-site-backup-v1',
+    format: 'vistalab-site-backup-supabase-v1',
     createdAt: new Date().toISOString(),
-    note: 'Images are included as Base64 data. Keep this backup file private.',
+    note: 'Database exports and images are included. Keep this backup file private.',
     tables,
     localData,
     images
@@ -86,5 +80,5 @@ export async function downloadSiteBackup(localData: Record<string, unknown>): Pr
   link.download = filename;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  return { filename, files: Object.keys(images).length, bytes: imageBytes, warnings };
+  return { filename, files: images.length, bytes: imageBytes, warnings };
 }

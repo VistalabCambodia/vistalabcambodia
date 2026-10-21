@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build --base=./",
+    "build": "tsc --noEmit && npm run check:worker && vite build --base=./",
+    "check:worker": "tsc --ignoreConfig --noEmit --target ES2022 --lib ES2022 --moduleResolution Bundler --module ESNext cloudflare/src/index.ts",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "@supabase/server": "^1.9.1",
     "@supabase/supabase-js": "^2.117.3",
     "lucide-react": "1.54.0",
     "react": "19.3.0",
@@ -23,6 +23,7 @@
     "postcss": "8.5.29",
     "tailwindcss": "^3.4.17",
     "typescript": "7.0.2",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "wrangler": "^4.151.0"
   }
 }
