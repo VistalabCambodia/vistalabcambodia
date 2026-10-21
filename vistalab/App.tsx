@@ -1853,6 +1853,30 @@ export default function App() {
                 </form>
               </div>
             </div>
+
+            <section aria-labelledby="contact-location-title" className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div>
+                  <h2 id="contact-location-title" className="text-xl font-extrabold text-slate-900">{tx('Find our Phnom Penh office', 'ស្វែងរកការិយាល័យរបស់យើងនៅភ្នំពេញ')}</h2>
+                  <p className="mt-1 text-sm text-slate-600">{lang === 'KH' ? settings.address_kh : settings.address_en}</p>
+                </div>
+                <a href="https://maps.app.goo.gl/EZhK6Qpwd4o3U5oT8" target="_blank" rel="noreferrer" className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-green-800">
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
+                  {tx('Open in Google Maps', 'បើកក្នុង Google Maps')}
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </div>
+              <div className="h-64 border-t border-slate-200 bg-slate-100 sm:h-96">
+                <iframe
+                  title={tx('Map to VistaLab Cambodia in Phnom Penh', 'ផែនទីទៅកាន់ VistaLab Cambodia នៅភ្នំពេញ')}
+                  src="https://maps.google.com/maps?q=11.5768898%2C104.8669478&z=16&output=embed"
+                  className="h-full w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
+            </section>
           </div>
         )}
 
