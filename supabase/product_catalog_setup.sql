@@ -20,6 +20,7 @@ create table if not exists public.products (
 );
 
 alter table public.products add column if not exists code text not null default '';
+notify pgrst, 'reload schema';
 
 alter table public.products enable row level security;
 

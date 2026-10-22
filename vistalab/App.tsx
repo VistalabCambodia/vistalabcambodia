@@ -95,6 +95,12 @@ function formatStorageBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function getSupabaseErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error) return String(error.message);
+  return fallback;
+}
+
 function ProductDescription({ text, className }: { text: string; className: string }) {
   if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)) {
     return <div className={`${className} space-y-1 [&_p]:m-0 [&_div]:m-0 [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold`} dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(text) }} />;
@@ -396,7 +402,7 @@ export default function App() {
       try { data = await loadProductsFromSupabase(); }
       catch (error) {
         if (cancelled) return;
-        setProductsDatabaseError(error instanceof Error ? error.message : 'Could not load products from Supabase.');
+        setProductsDatabaseError(getSupabaseErrorMessage(error, 'Could not load products from Supabase.'));
         setProductsLoaded(true);
         return;
       }
@@ -433,7 +439,7 @@ export default function App() {
           setProducts((current) => current.map((item) => item.id === saved.id ? saved : item));
         }
       } catch (error) {
-        setProductsDatabaseError(error instanceof Error ? error.message : 'Could not save products to Supabase.');
+        setProductsDatabaseError(getSupabaseErrorMessage(error, 'Could not save products to Supabase.'));
       } finally {
         productsInFlight.current.delete(product.id);
       }
@@ -1510,7 +1516,8 @@ export default function App() {
                   return !query
                     || p.name_en.toLowerCase().includes(query)
                     || p.name_kh.toLowerCase().includes(query)
-                    || p.brand.toLowerCase().includes(query);
+                    || p.brand.toLowerCase().includes(query)
+                    || (p.code ?? '').toLowerCase().includes(query);
                 })
                 .map((prod) => (
                   <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
@@ -1530,6 +1537,7 @@ export default function App() {
                         <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-1 line-clamp-2 break-words">
                           {localizedProductName(prod)}
                         </h3>
+                        {prod.code && <p className="mt-1 text-[9px] font-semibold tracking-wide text-slate-500 sm:text-[10px]">{tx('Code', 'កូដ')}: {prod.code}</p>}
                         <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 break-words text-[10px] text-slate-500 sm:mt-2 sm:text-xs" />
                       </div>
                       <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center">
@@ -2406,6 +2414,7 @@ export default function App() {
                   const fd = new FormData(form);
                   const newP = {
                     id: `p-${Date.now()}`,
+                    code: String(fd.get('code') || '').trim(),
                     name_en: String(fd.get('name_en') || ''),
                     name_kh: String(fd.get('name_kh') || fd.get('name_en') || ''),
                     brand: String(fd.get('brand') || ''),
@@ -2432,11 +2441,7 @@ export default function App() {
                     setNewProductSpecsKh('');
                     triggerToast('Product saved to Supabase and added to the catalog.');
                   } catch (error) {
-                    const message = error instanceof Error
-                      ? error.message
-                      : error && typeof error === 'object' && 'message' in error
-                        ? String(error.message)
-                        : 'Could not save this product to Supabase.';
+                    const message = getSupabaseErrorMessage(error, 'Could not save this product to Supabase.');
                     setProductsDatabaseError(message);
                     triggerToast(`Product was not saved: ${message}`);
                   } finally {
@@ -2446,6 +2451,7 @@ export default function App() {
                 }}
                 className="grid grid-cols-1 sm:grid-cols-3 gap-4"
               >
+                <input name="code" aria-label="Product code" placeholder={tx('Product code (optional)', 'កូដផលិតផល (ស្រេចចិត្ត)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
                 <input required name="name_en" placeholder={tx('Product Name (English)', 'ឈ្មោះផលិតផល (អង់គ្លេស)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
                 <input name="name_kh" placeholder={tx('Product Name (Khmer)', 'ឈ្មោះផលិតផល (ខ្មែរ)')} className="border border-slate-300 p-2.5 rounded-xl text-xs" />
                 <select name="brand" value={newProductBrand} onChange={(event) => setNewProductBrand(event.target.value)} className="border border-slate-300 p-2.5 rounded-xl text-xs bg-white">
@@ -2499,6 +2505,7 @@ export default function App() {
                   className="grid grid-cols-1 gap-3 rounded-2xl border border-green-200 bg-green-50/50 p-4 sm:grid-cols-2"
                 >
                   <h3 className="text-sm font-extrabold text-[#202124] sm:col-span-2">{tx('Product details', 'ព័ត៌មានលម្អិតអំពីផលិតផល')}</h3>
+                  <input aria-label="Product code" placeholder={tx('Product code (optional)', 'កូដផលិតផល (ស្រេចចិត្ត)')} value={editingProduct.code ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, code: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input required aria-label="Product name in English" placeholder={tx('Product name (English)', 'ឈ្មោះផលិតផល (អង់គ្លេស)')} value={editingProduct.name_en} onChange={(event) => setEditingProduct({ ...editingProduct, name_en: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input aria-label="Product name in Khmer" placeholder={tx('Product name (Khmer)', 'ឈ្មោះផលិតផល (ខ្មែរ)')} value={editingProduct.name_kh} onChange={(event) => setEditingProduct({ ...editingProduct, name_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <select aria-label="Product brand" value={editingProduct.brand} onChange={(event) => setEditingProduct({ ...editingProduct, brand: event.target.value })} className="rounded-xl border border-slate-300 bg-white p-2.5 text-xs">
