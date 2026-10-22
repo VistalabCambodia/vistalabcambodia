@@ -1557,8 +1557,9 @@ export default function App() {
                     || (p.code ?? '').toLowerCase().includes(query);
                 })
                 .reduce<Product[]>((ordered, product, _index, filtered) => {
-                  if (ordered.some((item) => item.brand === product.brand)) return ordered;
-                  ordered.push(...filtered.filter((item) => item.brand === product.brand));
+                  const brandKey = product.brand.trim().toLocaleLowerCase();
+                  if (ordered.some((item) => item.brand.trim().toLocaleLowerCase() === brandKey)) return ordered;
+                  ordered.push(...filtered.filter((item) => item.brand.trim().toLocaleLowerCase() === brandKey));
                   return ordered;
                 }, [])
                 .map((prod) => (
