@@ -2432,7 +2432,11 @@ export default function App() {
                     setNewProductSpecsKh('');
                     triggerToast('Product saved to Supabase and added to the catalog.');
                   } catch (error) {
-                    const message = error instanceof Error ? error.message : 'Could not save this product to Supabase.';
+                    const message = error instanceof Error
+                      ? error.message
+                      : error && typeof error === 'object' && 'message' in error
+                        ? String(error.message)
+                        : 'Could not save this product to Supabase.';
                     setProductsDatabaseError(message);
                     triggerToast(`Product was not saved: ${message}`);
                   } finally {
