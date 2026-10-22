@@ -2572,6 +2572,10 @@ export default function App() {
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</p>
                   <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
                 </div>
+                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Product code', 'កូដផលិតផល')}</p>
+                  <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.code?.trim() || tx('Not assigned', 'មិនទាន់កំណត់')}</p>
+                </div>
               </div>
             </div>
 
