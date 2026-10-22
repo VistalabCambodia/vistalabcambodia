@@ -487,7 +487,6 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productImageZoomOpen, setProductImageZoomOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [expandedBrandDescriptions, setExpandedBrandDescriptions] = useState<Record<string, boolean>>({});
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryPrefill, setInquiryPrefill] = useState({ product: '', brand: '', type: 'Product Inquiry' });
@@ -1490,10 +1489,7 @@ export default function App() {
                       <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-green-900">{b.name}</h3>
                       <p className="text-xs font-bold text-green-900 mt-0.5">{localizedCategory(b.category)}</p>
                     </div>
-                    <div>
-                      <p className={`text-xs text-slate-600 leading-relaxed ${expandedBrandDescriptions[b.id] ? '' : 'line-clamp-3'}`}>{localizedBrandDescription(b)}</p>
-                      {localizedBrandDescription(b).length > 160 && <button type="button" onClick={() => setExpandedBrandDescriptions((current) => ({ ...current, [b.id]: !current[b.id] }))} className="mt-2 text-xs font-bold text-green-800 hover:text-green-950">{expandedBrandDescriptions[b.id] ? tx('See less', 'បង្ហាញតិច') : tx('See more', 'មើលបន្ថែម')}</button>}
-                    </div>
+                    <ProductDescriptionPreview text={localizedBrandDescription(b)} className="text-xs text-slate-600" />
                   </div>
 
                   <div className="mx-5 mb-5 flex items-center border-t border-slate-100 pt-4 sm:mx-6 sm:mb-6">
