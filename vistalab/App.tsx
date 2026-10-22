@@ -133,8 +133,8 @@ function normalizeKnownBrandDescription(brand: Brand): Brand {
   if (normalizedName !== 'mychefs' || !hasGeneratedJunk) return brand;
   return {
     ...brand,
-    description: 'MyChef’s is a Malaysian snack brand with a range of potato crisps, crackers, bakery treats, bites, and beverages. Its promise is to “Make Life Tasty.”',
-    description_kh: 'MyChef’s ជាម៉ាកអាហារសម្រន់ពីប្រទេសម៉ាឡេស៊ី ដែលមានផលិតផលដូចជា ដំឡូងបន្ទះ នំកែកឃឺ នំដុត អាហារសម្រន់ និងភេសជ្ជៈ។ ពាក្យស្លោករបស់ម៉ាកគឺ «ធ្វើឱ្យជីវិតកាន់តែឆ្ងាញ់»។'
+    description: 'Malaysian snack brand: MyChef’s aims to “Make Life Tasty.”\nPotato crisps: classic and bold flavors.\nBakery treats: cakes and pastries in several varieties.\nSnack bites and crackers: tasty options for sharing and everyday enjoyment.',
+    description_kh: 'ម៉ាកអាហារសម្រន់ម៉ាឡេស៊ី៖ MyChef’s មានបំណងធ្វើឱ្យជីវិតកាន់តែឆ្ងាញ់។\nដំឡូងបន្ទះ៖ មានរសជាតិបែបបុរាណ និងរសជាតិចម្រុះ។\nនំដុត៖ មាននំខេក និងនំជាច្រើនប្រភេទ។\nអាហារសម្រន់ និងនំកែកឃឺ៖ សម្រាប់ញ៉ាំរាល់ថ្ងៃ និងចែករំលែក។'
   };
 }
 
@@ -2657,7 +2657,9 @@ export default function App() {
               </div>
             </div>
 
-            <p className="text-sm text-slate-600 leading-relaxed">{localizedBrandDescription(selectedBrand)}</p>
+            <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
+              <ProductDescription text={localizedBrandDescription(selectedBrand)} className="px-3 py-2 text-sm leading-6 sm:px-4" />
+            </div>
 
             <div className="border-t border-slate-100 pt-4 flex flex-col gap-2 sm:flex-row">
               {getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name)) && <a href={getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name))!} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-white py-3 text-xs font-bold text-green-800 hover:bg-green-50 sm:flex-1"><ExternalLink className="h-4 w-4" />{tx('Official Website', 'គេហទំព័រផ្លូវការ')}</a>}
