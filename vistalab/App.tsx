@@ -101,6 +101,16 @@ function getSupabaseErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function getSupabaseProjectHost(): string {
+  try {
+    return new URL(import.meta.env.VITE_SUPABASE_URL).host;
+  } catch {
+    return 'not configured';
+  }
+}
+
+const supabaseProjectHost = getSupabaseProjectHost();
+
 function ProductDescription({ text, className }: { text: string; className: string }) {
   if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)) {
     return <div className={`${className} space-y-1 [&_p]:m-0 [&_div]:m-0 [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold`} dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(text) }} />;
@@ -2391,6 +2401,7 @@ export default function App() {
               {productsDatabaseError ? <>
                 <p className="font-bold">{tx('Product database needs setup or a connection check.', 'ត្រូវរៀបចំមូលដ្ឋានទិន្នន័យផលិតផល ឬពិនិត្យការតភ្ជាប់។')}</p>
                 <p className="mt-1">{tx('Run supabase/product_catalog_setup.sql in the Supabase SQL Editor, then retry. Details:', 'សូមដំណើរការ supabase/product_catalog_setup.sql ក្នុង Supabase SQL Editor រួចសាកល្បងម្ដងទៀត។ ព័ត៌មានលម្អិត៖')} {productsDatabaseError}</p>
+                <p className="mt-1 break-all text-xs text-amber-800">Connected Supabase project: {supabaseProjectHost}</p>
                 <button type="button" onClick={() => setProductsRetry((attempt) => attempt + 1)} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-sm">{tx('Retry connection', 'ព្យាយាមតភ្ជាប់ម្ដងទៀត')}</button>
               </> : <p>{productsSyncing ? tx('Saving products and pictures to Supabase…', 'កំពុងរក្សាទុកផលិតផល និងរូបភាពទៅ Supabase…') : tx('Products are connected to Supabase. When you publish or edit a product, its details and picture sync for every visitor.', 'ផលិតផលបានភ្ជាប់ទៅ Supabase។ ពេលអ្នកបោះពុម្ព ឬកែផលិតផល ព័ត៌មាន និងរូបភាពនឹងធ្វើសមកាលកម្មសម្រាប់អ្នកទស្សនាទាំងអស់។')}</p>}
             </div>}
