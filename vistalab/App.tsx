@@ -1556,7 +1556,14 @@ export default function App() {
                     || p.brand.toLowerCase().includes(query)
                     || (p.code ?? '').toLowerCase().includes(query);
                 })
-                .sort((a, b) => (a.code ?? '').localeCompare(b.code ?? '', undefined, { numeric: true }))
+                .sort((a, b) => {
+                  const codeA = a.code ?? '';
+                  const codeB = b.code ?? '';
+                  const groupA = codeA.match(/^\d{3}/)?.[0] ?? '';
+                  const groupB = codeB.match(/^\d{3}/)?.[0] ?? '';
+                  return groupA.localeCompare(groupB, undefined, { numeric: true })
+                    || codeA.localeCompare(codeB, undefined, { numeric: true });
+                })
                 .map((prod) => (
                   <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
                     <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-36 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
