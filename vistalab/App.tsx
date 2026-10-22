@@ -256,6 +256,7 @@ export default function App() {
   const [backupLoading, setBackupLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeBrandFilter, setActiveBrandFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHubId, setSelectedHubId] = useState(distributionHubs[0].id);
   const languageLoadingTimer = useRef<number | null>(null);
@@ -951,7 +952,7 @@ export default function App() {
             ].map((link) => (
               <button
                 key={link.id}
-                onClick={() => setCurrentView(link.id)}
+                onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); }}
                 className={`px-3 py-2 rounded-lg transition-all ${currentView === link.id ? 'bg-[#267A3B] text-white font-bold' : 'hover:bg-slate-100 text-slate-600'}`}
               >
                 {link.label}
@@ -1003,7 +1004,7 @@ export default function App() {
               ].map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => setCurrentView(link.id)}
+                  onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); }}
                   className={`flex min-h-11 min-w-0 items-center gap-2 text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${currentView === link.id ? 'bg-[#267A3B] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
                   <link.icon className={`h-4 w-4 shrink-0 ${currentView === link.id ? 'text-white' : 'text-slate-400'}`} aria-hidden="true" />
@@ -1118,7 +1119,7 @@ export default function App() {
                     <p className="text-slate-600 text-sm mt-1">{t.catSub}</p>
                   </div>
                   <button 
-                    onClick={() => setCurrentView('products')}
+                    onClick={() => { setActiveBrandFilter(null); setCurrentView('products'); }}
                     className="text-green-900 hover:text-green-600 font-bold text-sm flex items-center space-x-1"
                   >
                     <span>{t.viewAllProducts}</span>
@@ -1468,8 +1469,8 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-12 space-y-5 sm:space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-slate-200 pb-4 sm:pb-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-[#202124]">{t.catTitle}</h1>
-                <p className="text-slate-600 text-xs sm:text-sm mt-1">{t.featuredProdSub}</p>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#202124]">{activeBrandFilter ? `${activeBrandFilter} ${tx('Products', 'ផលិតផល')}` : t.catTitle}</h1>
+                <p className="text-slate-600 text-xs sm:text-sm mt-1">{activeBrandFilter ? tx(`Products from ${activeBrandFilter}`, `ផលិតផលពី ${activeBrandFilter}`) : t.featuredProdSub}</p>
               </div>
 
               {/* Search Bar */}
@@ -1486,7 +1487,8 @@ export default function App() {
             </div>
 
             {/* Filter Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+            {activeBrandFilter && <button type="button" onClick={() => setActiveBrandFilter(null)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">{tx('← All products', '← ផលិតផលទាំងអស់')}</button>}
+            {!activeBrandFilter && <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
               {productCategories.map((cat) => (
                 <button
                   key={cat}
@@ -1496,11 +1498,12 @@ export default function App() {
                   {categoryLabels[cat]}
                 </button>
               ))}
-            </div>
+            </div>}
 
             {/* Product Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
               {products
+                .filter(p => (!activeBrandFilter || p.brand === activeBrandFilter))
                 .filter(p => (activeCategory === 'All' || p.category === activeCategory))
                 .filter((p) => {
                   const query = searchQuery.trim().toLowerCase();
@@ -2610,6 +2613,9 @@ export default function App() {
               <button
                 onClick={() => {
                   setSelectedBrand(null);
+                  setActiveBrandFilter(selectedBrand.name);
+                  setActiveCategory('All');
+                  setSearchQuery('');
                   setCurrentView('products');
                 }}
                 className="w-full bg-[#267A3B] text-white font-bold py-3 rounded-xl text-xs"
