@@ -1558,12 +1558,7 @@ export default function App() {
                 })
                 .reduce<Product[]>((ordered, product, _index, filtered) => {
                   if (ordered.some((item) => item.brand === product.brand)) return ordered;
-                  const brandProducts = filtered.filter((item) => item.brand === product.brand);
-                  for (let i = brandProducts.length - 1; i > 0; i -= 1) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [brandProducts[i], brandProducts[j]] = [brandProducts[j], brandProducts[i]];
-                  }
-                  ordered.push(...brandProducts);
+                  ordered.push(...filtered.filter((item) => item.brand === product.brand));
                   return ordered;
                 }, [])
                 .map((prod) => (
