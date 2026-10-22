@@ -2712,7 +2712,7 @@ export default function App() {
             <button onClick={() => setSelectedArticle(null)} className="absolute top-4 right-4 p-2 text-slate-400">
               <X className="w-5 h-5" />
             </button>
-            {selectedArticle.image && <img src={selectedArticle.image} alt="" className="h-56 w-full rounded-xl object-cover" />}
+            {selectedArticle.image && <img src={selectedArticle.image} alt="" className="max-h-[70vh] w-full rounded-xl bg-slate-50 object-contain" />}
             <span className="text-xs font-bold text-green-600">{tx(selectedArticle.category, selectedArticle.category === 'Company' ? 'ក្រុមហ៊ុន' : selectedArticle.category === 'Products' ? 'ផលិតផល' : selectedArticle.category === 'Events' ? 'ព្រឹត្តិការណ៍' : selectedArticle.category)} • {selectedArticle.date}</span>
             <h2 className="text-xl font-bold text-slate-900">{localizedArticleTitle(selectedArticle)}</h2>
             <p className="text-sm text-slate-600 leading-relaxed">{localizedArticleExcerpt(selectedArticle)}</p>
