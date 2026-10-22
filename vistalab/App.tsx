@@ -111,6 +111,21 @@ function getSupabaseProjectHost(): string {
 
 const supabaseProjectHost = getSupabaseProjectHost();
 
+function getDefaultBrandWebsite(name: string): string {
+  const normalized = name.trim().toLowerCase().replace(/[’‘]/gu, "'");
+  return normalized === "mychef's" || normalized === 'mychefs' ? 'https://www.mychefs.com.my/' : '';
+}
+
+function getSafeBrandWebsite(website?: string): string | null {
+  if (!website?.trim()) return null;
+  try {
+    const url = new URL(website.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function ProductDescription({ text, className }: { text: string; className: string }) {
   if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)) {
     return <div className={`${className} space-y-1 [&_p]:m-0 [&_div]:m-0 [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold`} dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(text) }} />;
@@ -2059,7 +2074,7 @@ export default function App() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setEditingBrand({ id: `b-${Date.now()}`, name: '', category: 'Personal Care', origin: 'Malaysia', description: '', description_kh: '', featured: false, logoText: '', image: '', flagImage: '' })}
+                  onClick={() => setEditingBrand({ id: `b-${Date.now()}`, name: '', category: 'Personal Care', origin: 'Malaysia', description: '', description_kh: '', featured: false, logoText: '', image: '', flagImage: '', website: '' })}
                   className="rounded-xl bg-[#267A3B] px-4 py-2 text-xs font-bold text-white"
                 >
                   {tx('+ Add Brand', '+ បន្ថែមម៉ាកផលិតផល')}
@@ -2073,7 +2088,7 @@ export default function App() {
                       {brand.image ? <img src={brand.image} alt="" className="max-h-full max-w-full object-contain" /> : <span className="text-xs font-black text-[#267A3B]">{brand.logoText.slice(0, 3)}</span>}
                     </div>
                     <span className="line-clamp-2 min-w-0 flex-1 whitespace-normal text-sm font-bold leading-tight text-slate-800">{brand.name}</span>
-                    <button type="button" onClick={() => setEditingBrand({ ...brand })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
+                    <button type="button" onClick={() => setEditingBrand({ ...brand, website: brand.website || getDefaultBrandWebsite(brand.name) })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
                   </div>
                 ))}
               </div>
@@ -2125,6 +2140,7 @@ export default function App() {
                   <input aria-label="Logo text" placeholder={tx('Logo text', 'អក្សរលើរូបសញ្ញា')} value={editingBrand.logoText} onChange={(event) => setEditingBrand({ ...editingBrand, logoText: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input aria-label="Category" placeholder={tx('Category', 'ប្រភេទ')} value={editingBrand.category} onChange={(event) => setEditingBrand({ ...editingBrand, category: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input aria-label="Country of origin" placeholder={tx('Country of origin', 'ប្រទេសដើម')} value={editingBrand.origin} onChange={(event) => setEditingBrand({ ...editingBrand, origin: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
+                  <input type="url" aria-label="Official brand website" placeholder="https://example.com" value={editingBrand.website || ''} onChange={(event) => setEditingBrand({ ...editingBrand, website: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <textarea aria-label="Brand description" placeholder={tx('Brand description', 'ការពិពណ៌នាអំពីម៉ាក')} rows={3} value={editingBrand.description} onChange={(event) => setEditingBrand({ ...editingBrand, description: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <textarea aria-label="Brand description in Khmer" placeholder={tx('Brand description (Khmer)', 'ការពិពណ៌នាអំពីម៉ាក (ខ្មែរ)')} rows={3} value={editingBrand.description_kh || ''} onChange={(event) => setEditingBrand({ ...editingBrand, description_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs sm:col-span-2" />
                   <ImageUpload label={tx('Brand picture or logo', 'រូបភាពម៉ាក ឬរូបសញ្ញា')} lang={lang} image={editingBrand.image} onChange={async (image) => {
@@ -2631,7 +2647,8 @@ export default function App() {
 
             <p className="text-sm text-slate-600 leading-relaxed">{localizedBrandDescription(selectedBrand)}</p>
 
-            <div className="border-t border-slate-100 pt-4 flex gap-3">
+            <div className="border-t border-slate-100 pt-4 flex flex-col gap-2 sm:flex-row">
+              {getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name)) && <a href={getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name))!} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-white py-3 text-xs font-bold text-green-800 hover:bg-green-50 sm:flex-1"><ExternalLink className="h-4 w-4" />{tx('Official Website', 'គេហទំព័រផ្លូវការ')}</a>}
               <button
                 onClick={() => {
                   setSelectedBrand(null);
@@ -2640,7 +2657,7 @@ export default function App() {
                   setSearchQuery('');
                   setCurrentView('products');
                 }}
-                className="w-full bg-[#267A3B] text-white font-bold py-3 rounded-xl text-xs"
+                className="w-full bg-[#267A3B] text-white font-bold py-3 rounded-xl text-xs sm:flex-1"
               >
                 {tx('View Brand Products', 'មើលផលិតផលរបស់ម៉ាកនេះ')}
               </button>

@@ -81,7 +81,7 @@ export const productCategories = [
   'Food & Confectionery'
 ] as const;
 
-export type Brand = typeof initialBrands[number] & { image?: string; flagImage?: string; description_kh?: string };
+export type Brand = typeof initialBrands[number] & { image?: string; flagImage?: string; description_kh?: string; website?: string };
 export type Product = typeof initialProducts[number] & { code?: string; image?: string; specs_kh?: string };
 export type NewsArticle = typeof initialNews[number] & { image?: string };
 export type Inquiry = typeof initialInquiries[number];
