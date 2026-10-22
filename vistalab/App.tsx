@@ -2708,7 +2708,7 @@ export default function App() {
 
       {/* Article Reader Modal */}
       {selectedArticle && (
-        <Modal label="News article" onClose={() => setSelectedArticle(null)} size="xl" className="relative space-y-4">
+        <Modal label="News article" onClose={() => setSelectedArticle(null)} size="xl" closeOnBackdrop className="relative space-y-4">
             <button onClick={() => setSelectedArticle(null)} className="absolute top-4 right-4 p-2 text-slate-400">
               <X className="w-5 h-5" />
             </button>
