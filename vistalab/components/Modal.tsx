@@ -6,6 +6,7 @@ type ModalProps = {
   onClose: () => void;
   size?: 'lg' | 'xl';
   className?: string;
+  closeOnBackdrop?: boolean;
 };
 
 const sizeClasses = {
@@ -13,7 +14,7 @@ const sizeClasses = {
   xl: 'max-w-xl'
 };
 
-export function Modal({ children, label, onClose, size = 'lg', className = '' }: ModalProps) {
+export function Modal({ children, label, onClose, size = 'lg', className = '', closeOnBackdrop = false }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -53,7 +54,7 @@ export function Modal({ children, label, onClose, size = 'lg', className = '' }:
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (closeOnBackdrop && event.target === event.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
         role="dialog"
