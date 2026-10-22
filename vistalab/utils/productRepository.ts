@@ -3,6 +3,7 @@ import { supabaseClient } from './supabase';
 
 type ProductRow = {
   id: string;
+  code?: string | null;
   name_en: string;
   name_kh: string;
   brand: string;
@@ -20,6 +21,7 @@ type ProductRow = {
 export function mapProductRow(row: ProductRow): Product {
   return {
     id: row.id,
+    code: row.code ?? '',
     name_en: row.name_en,
     name_kh: row.name_kh,
     brand: row.brand,
@@ -62,6 +64,7 @@ export async function saveProductToSupabase(product: Product): Promise<Product> 
   const imageUrl = await storeProductImage(product);
   const row = {
     id: product.id,
+    code: product.code?.trim() ?? '',
     name_en: product.name_en,
     name_kh: product.name_kh,
     brand: product.brand,

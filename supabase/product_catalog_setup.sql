@@ -3,6 +3,7 @@
 
 create table if not exists public.products (
   id text primary key,
+  code text not null default '',
   name_en text not null,
   name_kh text not null default '',
   brand text not null default '',
@@ -17,6 +18,8 @@ create table if not exists public.products (
   image_url text,
   updated_at timestamptz not null default now()
 );
+
+alter table public.products add column if not exists code text not null default '';
 
 alter table public.products enable row level security;
 

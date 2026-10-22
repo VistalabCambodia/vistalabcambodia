@@ -1,4 +1,4 @@
-﻿/// <reference path="../worker-configuration.d.ts" />
+/// <reference path="../worker-configuration.d.ts" />
 
 interface Env {
   DB: D1Database;
@@ -117,10 +117,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const product = await readJson(request);
     const id = decodeURIComponent(path.slice('/api/products/'.length));
     if (!id || id.length > 120 || product.id !== id) return json({ error: 'Invalid product ID.' }, 400);
-    await env.DB.prepare(`INSERT INTO products (id,name_en,name_kh,brand,category,origin,sizes,specs,specs_kh,featured,image_bg,image_badge,image_url,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-      ON CONFLICT(id) DO UPDATE SET name_en=excluded.name_en,name_kh=excluded.name_kh,brand=excluded.brand,category=excluded.category,origin=excluded.origin,sizes=excluded.sizes,specs=excluded.specs,specs_kh=excluded.specs_kh,featured=excluded.featured,image_bg=excluded.image_bg,image_badge=excluded.image_badge,image_url=excluded.image_url,updated_at=excluded.updated_at`)
-      .bind(id, product.name_en ?? '', product.name_kh ?? '', product.brand ?? '', product.category ?? '', product.origin ?? '', product.sizes ?? '', product.specs ?? '', product.specs_kh ?? null, product.featured ? 1 : 0, product.image_bg ?? product.imageBg ?? 'bg-slate-100', product.image_badge ?? product.imageBadge ?? 'Product', product.image_url ?? product.image ?? null).run();
+    await env.DB.prepare(`INSERT INTO products (id,code,name_en,name_kh,brand,category,origin,sizes,specs,specs_kh,featured,image_bg,image_badge,image_url,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      ON CONFLICT(id) DO UPDATE SET code=excluded.code,name_en=excluded.name_en,name_kh=excluded.name_kh,brand=excluded.brand,category=excluded.category,origin=excluded.origin,sizes=excluded.sizes,specs=excluded.specs,specs_kh=excluded.specs_kh,featured=excluded.featured,image_bg=excluded.image_bg,image_badge=excluded.image_badge,image_url=excluded.image_url,updated_at=excluded.updated_at`)
+      .bind(id, product.code ?? '', product.name_en ?? '', product.name_kh ?? '', product.brand ?? '', product.category ?? '', product.origin ?? '', product.sizes ?? '', product.specs ?? '', product.specs_kh ?? null, product.featured ? 1 : 0, product.image_bg ?? product.imageBg ?? 'bg-slate-100', product.image_badge ?? product.imageBadge ?? 'Product', product.image_url ?? product.image ?? null).run();
     return json({ ok: true });
   }
   if (path.startsWith('/api/products/') && method === 'DELETE') {
