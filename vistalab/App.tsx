@@ -1556,12 +1556,7 @@ export default function App() {
                     || p.brand.toLowerCase().includes(query)
                     || (p.code ?? '').toLowerCase().includes(query);
                 })
-                .reduce<Product[]>((ordered, product, _index, filtered) => {
-                  const brandKey = product.brand.trim().toLocaleLowerCase();
-                  if (ordered.some((item) => item.brand.trim().toLocaleLowerCase() === brandKey)) return ordered;
-                  ordered.push(...filtered.filter((item) => item.brand.trim().toLocaleLowerCase() === brandKey));
-                  return ordered;
-                }, [])
+                .sort((a, b) => (a.code ?? '').localeCompare(b.code ?? '', undefined, { numeric: true }))
                 .map((prod) => (
                   <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
                     <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-36 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
