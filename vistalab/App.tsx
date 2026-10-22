@@ -126,6 +126,18 @@ function getSafeBrandWebsite(website?: string): string | null {
   }
 }
 
+function normalizeKnownBrandDescription(brand: Brand): Brand {
+  const normalizedName = brand.name.toLowerCase().replace(/[^a-z]/gu, '');
+  const description = `${brand.description} ${brand.description_kh ?? ''}`;
+  const hasGeneratedJunk = /ai mode conversation|translate to khmer|let me know so i can get you the right details|where to buy while the products/iu.test(description);
+  if (normalizedName !== 'mychefs' || !hasGeneratedJunk) return brand;
+  return {
+    ...brand,
+    description: 'MyChef’s is a Malaysian snack brand with a range of potato crisps, crackers, bakery treats, bites, and beverages. Its promise is to “Make Life Tasty.”',
+    description_kh: 'MyChef’s ជាម៉ាកអាហារសម្រន់ពីប្រទេសម៉ាឡេស៊ី ដែលមានផលិតផលដូចជា ដំឡូងបន្ទះ នំកែកឃឺ នំដុត អាហារសម្រន់ និងភេសជ្ជៈ។ ពាក្យស្លោករបស់ម៉ាកគឺ «ធ្វើឱ្យជីវិតកាន់តែឆ្ងាញ់»។'
+  };
+}
+
 function ProductDescription({ text, className }: { text: string; className: string }) {
   if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(text)) {
     return <div className={`${className} space-y-1 [&_p]:m-0 [&_div]:m-0 [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold`} dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(text) }} />;
@@ -395,7 +407,7 @@ export default function App() {
   };
   
   // Data States
-  const [brands, setBrands] = useState<Brand[]>(() => loadStoredArray('vistalab.brands', initialBrands));
+  const [brands, setBrands] = useState<Brand[]>(() => loadStoredArray('vistalab.brands', initialBrands).map(normalizeKnownBrandDescription));
   const [products, setProducts] = useState<Product[]>(() => loadStoredArray('vistalab.products', initialProducts));
   const [productsDatabaseReady, setProductsDatabaseReady] = useState(!supabaseClient);
   const [productsDatabaseError, setProductsDatabaseError] = useState('');
@@ -562,7 +574,7 @@ export default function App() {
       if (cancelled) return;
       if (data) {
         siteContentBaseline.current = JSON.stringify(data);
-        setBrands(data.brands);
+        setBrands(data.brands.map(normalizeKnownBrandDescription));
         setNews(data.news);
         setSettings((current) => ({ ...current, ...data.settings }));
       } else {
