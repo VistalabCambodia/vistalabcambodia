@@ -714,7 +714,16 @@ export default function App() {
     try {
       if (supabaseClient) {
         const { error } = await supabaseClient.from('inquiries').insert({
-          ...newInq, product: inquiryPrefill.product, brand: inquiryPrefill.brand
+          id: newInq.id,
+          type: newInq.type,
+          name: newInq.name,
+          business: newInq.business,
+          phone: newInq.phone,
+          telegram: newInq.telegram,
+          province: newInq.province,
+          details: newInq.details,
+          product: inquiryPrefill.product,
+          brand: inquiryPrefill.brand
         });
         if (error) throw error;
       } else {

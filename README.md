@@ -97,11 +97,13 @@ The admin dashboard can show page visits, unique browser sessions, and product v
 
 ## GitHub security and maintenance
 
-- The Pages workflow builds pull requests targeting `main` but only deploys pushes to `main` or a manual run. Build jobs have read-only repository access; only the deploy job can publish Pages and request its deployment token.
+- The Pages workflow builds pull requests targeting `main` but only deploys pushes to `main` or a manual run. Build jobs have read-only repository access; only the deploy job can publish Pages and request its deployment token. Third-party actions are pinned to commit SHAs, and checkout does not persist its token.
 - Dependabot checks npm packages and GitHub Actions weekly and opens update pull requests. Review and merge those updates after the checks pass.
 - In **Settings → Security → Code security and analysis**, enable Dependabot alerts and private vulnerability reporting. Use **Settings → Environments → github-pages** to restrict deployment to `main` if your repository settings support deployment branch rules.
 - Protect `main` in **Settings → Branches**: require pull requests and passing checks before merging, and block force pushes and branch deletion. Enable required reviews if someone else also maintains the project.
 - Keep `.env` files and credentials out of Git. `.gitignore` excludes local environment files; `.env.example` contains placeholders only. The website's Supabase URL and publishable/anon key are included in the public browser bundle, so they are configuration values rather than secrets. Never use a Supabase service-role or other privileged key in this frontend or in GitHub Actions variables.
 - The anon key is safe to expose only when Supabase Row Level Security and policies are configured correctly. Run the relevant SQL setup files, review their policies, and test visitor and admin access. Rotate any privileged key that was ever committed or exposed.
+- After updating this project, rerun [`supabase/inquiries_setup.sql`](supabase/inquiries_setup.sql) in the Supabase SQL Editor to apply its current public-submission checks. These limit inquiry fields and prevent visitors from setting admin workflow status or timestamps.
+- Protect admin and staff accounts with unique passwords, enable Supabase's available multi-factor authentication options, and remove access for people who no longer need it.
 
 For vulnerability reports, use the private process in [`SECURITY.md`](SECURITY.md) rather than opening a public issue.

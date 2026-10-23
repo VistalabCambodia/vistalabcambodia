@@ -1,4 +1,4 @@
--- Run once in the Supabase SQL Editor to store public inquiries securely.
+-- Run or rerun in the Supabase SQL Editor to store public inquiries securely.
 -- Visitors may submit inquiries. Only approved admins can read or update them.
 
 create table if not exists public.inquiries (
@@ -23,10 +23,19 @@ drop policy if exists "Visitors can submit inquiries" on public.inquiries;
 create policy "Visitors can submit inquiries"
   on public.inquiries for insert to anon, authenticated
   with check (
-    char_length(name) between 1 and 160
+    char_length(btrim(name)) between 1 and 160
+    and char_length(id) between 1 and 100
+    and type in ('General', 'General Contact', 'Product Inquiry')
+    and status = 'New'
+    and date = current_date
+    and created_at between now() - interval '5 minutes' and now() + interval '5 minutes'
     and char_length(details) <= 5000
     and char_length(phone) <= 80
     and char_length(business) <= 200
+    and char_length(telegram) <= 80
+    and char_length(province) <= 100
+    and char_length(product) <= 160
+    and char_length(brand) <= 160
   );
 
 drop policy if exists "Admins can read inquiries" on public.inquiries;
