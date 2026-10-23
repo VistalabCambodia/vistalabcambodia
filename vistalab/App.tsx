@@ -1463,7 +1463,7 @@ export default function App() {
 
         {}
         {currentView === 'brands' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 space-y-12">
+          <div className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-12 space-y-8 sm:space-y-12">
             <div className="text-center max-w-3xl mx-auto space-y-3">
                       <span className="text-xs font-bold text-green-600 uppercase tracking-widest">{tx('BRAND PORTFOLIO', 'ផលប័ត្រម៉ាកផលិតផល')}</span>
               <h1 className="text-3xl sm:text-5xl font-black text-[#202124]">{t.brandsTitle}</h1>
@@ -1471,11 +1471,11 @@ export default function App() {
             </div>
 
             {/* Brand Directory Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
               {brands.map((b) => (
-                <div key={b.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between">
-                  <div className="space-y-5 p-5 sm:p-6">
-                    <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white p-5 sm:h-40">
+                <div key={b.id} className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between">
+                  <div className="space-y-3 p-3 sm:space-y-5 sm:p-6">
+                    <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white p-4 sm:h-40 sm:p-5">
                       {b.image ? (
                         <img src={b.image} alt={`${b.name} logo`} className="h-full w-full object-contain" />
                       ) : (
@@ -1486,13 +1486,13 @@ export default function App() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-green-900">{b.name}</h3>
+                      <h3 className="text-lg font-extrabold leading-snug text-slate-900 group-hover:text-green-900 sm:text-xl">{b.name}</h3>
                       <p className="text-xs font-bold text-green-900 mt-0.5">{localizedCategory(b.category)}</p>
                     </div>
                     <ProductDescriptionPreview text={localizedBrandDescription(b)} className="text-xs text-slate-600" />
                   </div>
 
-                  <div className="mx-5 mb-5 flex items-center border-t border-slate-100 pt-4 sm:mx-6 sm:mb-6">
+                  <div className="mx-3 mb-3 flex items-center border-t border-slate-100 pt-3 sm:mx-6 sm:mb-6 sm:pt-4">
                     <button
                       onClick={() => setSelectedBrand(b)}
                       className="text-xs font-bold text-slate-700 hover:text-green-900 flex items-center space-x-1"
