@@ -2167,6 +2167,13 @@ export default function App() {
                     const updatedBrand = { ...editingBrand, image };
                     setEditingBrand(updatedBrand);
                     if (!supabaseClient) return;
+                    // New brands are drafts until Save Brand is pressed. Saving
+                    // the current list here would omit the draft but falsely
+                    // tell the user its logo was stored with the brand.
+                    if (!brands.some((brand) => brand.id === updatedBrand.id)) {
+                      triggerToast('Logo added to this draft. Click Save Brand to publish it.');
+                      return;
+                    }
                     setBrandSaving(true);
                     setSiteContentSyncing(true);
                     setSiteContentError('');
