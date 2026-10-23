@@ -94,3 +94,14 @@ Run [`supabase/inquiries_setup.sql`](supabase/inquiries_setup.sql) to store visi
 ## Admin traffic analytics
 
 The admin dashboard can show page visits, unique browser sessions, and product views. To enable shared analytics, run [`supabase/website_analytics_setup.sql`](supabase/website_analytics_setup.sql) once in the Supabase SQL Editor. Then redeploy the site and open **Admin → Traffic analytics**. The tracker records the page or product opened and a random session-only ID; the analytics table does not store names, emails, or IP addresses. Without this SQL setup, the dashboard shows instructions and tracking remains inactive.
+
+## GitHub security and maintenance
+
+- The Pages workflow builds pull requests targeting `main` but only deploys pushes to `main` or a manual run. Build jobs have read-only repository access; only the deploy job can publish Pages and request its deployment token.
+- Dependabot checks npm packages and GitHub Actions weekly and opens update pull requests. Review and merge those updates after the checks pass.
+- In **Settings → Security → Code security and analysis**, enable Dependabot alerts and private vulnerability reporting. Use **Settings → Environments → github-pages** to restrict deployment to `main` if your repository settings support deployment branch rules.
+- Protect `main` in **Settings → Branches**: require pull requests and passing checks before merging, and block force pushes and branch deletion. Enable required reviews if someone else also maintains the project.
+- Keep `.env` files and credentials out of Git. `.gitignore` excludes local environment files; `.env.example` contains placeholders only. The website's Supabase URL and publishable/anon key are included in the public browser bundle, so they are configuration values rather than secrets. Never use a Supabase service-role or other privileged key in this frontend or in GitHub Actions variables.
+- The anon key is safe to expose only when Supabase Row Level Security and policies are configured correctly. Run the relevant SQL setup files, review their policies, and test visitor and admin access. Rotate any privileged key that was ever committed or exposed.
+
+For vulnerability reports, use the private process in [`SECURITY.md`](SECURITY.md) rather than opening a public issue.
