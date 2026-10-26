@@ -445,13 +445,17 @@ export default function App() {
       }
       if (cancelled) return;
       const remoteProducts = data ?? [];
-      if (remoteProducts.length) {
+      const productCatalogInitializedKey = 'vistalab.products.supabaseInitialized';
+      let productCatalogWasInitialized = false;
+      try { productCatalogWasInitialized = window.localStorage.getItem(productCatalogInitializedKey) === 'true'; } catch { /* Local storage may be disabled. */ }
+      if (remoteProducts.length || productCatalogWasInitialized) {
         productBaseline.current = new Map(remoteProducts.map((product) => [product.id, JSON.stringify(product)]));
         setProducts(remoteProducts);
       } else {
         // The first admin who visits after setup imports this browser's existing catalog.
         productBaseline.current = new Map();
       }
+      try { window.localStorage.setItem(productCatalogInitializedKey, 'true'); } catch { /* Local storage may be disabled. */ }
       setProductsDatabaseReady(true);
       setProductsLoaded(true);
     })();
@@ -2632,7 +2636,12 @@ export default function App() {
                       if (!window.confirm(tx(`Delete ${product.name_en}? This cannot be undone.`, `លុប ${product.name_en} មែនទេ?`))) return;
                       try {
                         if (supabaseClient) await deleteProductFromSupabase(product.id);
-                        setProducts((current) => current.filter((item) => item.id !== product.id));
+                        const remainingProducts = products.filter((item) => item.id !== product.id);
+                        setProducts(remainingProducts);
+                        try {
+                          window.localStorage.setItem('vistalab.products', JSON.stringify(remainingProducts));
+                          if (supabaseClient) window.localStorage.setItem('vistalab.products.supabaseInitialized', 'true');
+                        } catch { /* Local storage may be disabled. */ }
                         if (editingProduct?.id === product.id) setEditingProduct(null);
                         triggerToast(tx('Product deleted.', 'បានលុបផលិតផល។'));
                       } catch (error) {
