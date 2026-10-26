@@ -2292,6 +2292,12 @@ export default function App() {
                     {article.image ? <img src={article.image} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className={`h-12 w-12 shrink-0 rounded-lg ${article.imageBg}`} />}
                     <div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-800">{localizedArticleTitle(article)}</p><p className="text-[10px] text-slate-500">{article.date} · {tx(article.category, article.category === 'Company' ? 'ក្រុមហ៊ុន' : article.category === 'Products' ? 'ផលិតផល' : article.category === 'Events' ? 'ព្រឹត្តិការណ៍' : article.category)}</p></div>
                     <button type="button" onClick={() => setEditingNews({ ...article })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
+                    <button type="button" aria-label={`${tx('Delete', 'លុប')} ${localizedArticleTitle(article)}`} title={tx('Delete article', 'លុបអត្ថបទ')} onClick={() => {
+                      if (!window.confirm(tx(`Delete “${localizedArticleTitle(article)}”? This cannot be undone.`, `លុប “${localizedArticleTitle(article)}” មែនទេ?`))) return;
+                      setNews((current) => current.filter((item) => item.id !== article.id));
+                      if (editingNews?.id === article.id) setEditingNews(null);
+                      triggerToast(tx('News article deleted.', 'បានលុបអត្ថបទព័ត៌មាន។'));
+                    }} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
