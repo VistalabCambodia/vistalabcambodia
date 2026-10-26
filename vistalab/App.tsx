@@ -2831,14 +2831,19 @@ export default function App() {
 
       {/* Article Reader Modal */}
       {selectedArticle && (
-        <Modal label="News article" onClose={() => setSelectedArticle(null)} size="xl" closeOnBackdrop className="relative space-y-4">
-            <button onClick={() => setSelectedArticle(null)} className="absolute top-4 right-4 p-2 text-slate-400">
-              <X className="w-5 h-5" />
-            </button>
-            {selectedArticle.image && <img src={selectedArticle.image} alt="" className="max-h-[70vh] w-full rounded-xl bg-slate-50 object-contain" />}
-            <span className="text-xs font-bold text-green-600">{tx(selectedArticle.category, selectedArticle.category === 'Company' ? 'ក្រុមហ៊ុន' : selectedArticle.category === 'Products' ? 'ផលិតផល' : selectedArticle.category === 'Events' ? 'ព្រឹត្តិការណ៍' : selectedArticle.category)} • {selectedArticle.date}</span>
-            <h2 className="text-xl font-bold text-slate-900">{localizedArticleTitle(selectedArticle)}</h2>
-            <p className="text-sm text-slate-600 leading-relaxed">{localizedArticleExcerpt(selectedArticle)}</p>
+        <Modal label="News article" onClose={() => setSelectedArticle(null)} size="xl" closeOnBackdrop className="space-y-4 sm:space-y-5">
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setSelectedArticle(null)} aria-label={tx('Close article', 'បិទអត្ថបទ')} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {selectedArticle.image && <div className="overflow-hidden rounded-2xl bg-slate-100"><img src={selectedArticle.image} alt={localizedArticleTitle(selectedArticle)} className="max-h-[58vh] w-full object-contain" /></div>}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-bold text-green-800">{tx(selectedArticle.category, selectedArticle.category === 'Company' ? 'ក្រុមហ៊ុន' : selectedArticle.category === 'Products' ? 'ផលិតផល' : selectedArticle.category === 'Events' ? 'ព្រឹត្តិការណ៍' : selectedArticle.category)}</span>
+              <span className="text-xs font-medium text-slate-500">{selectedArticle.date}</span>
+            </div>
+            <h2 className="text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{localizedArticleTitle(selectedArticle)}</h2>
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-600">{localizedArticleExcerpt(selectedArticle)}</p>
         </Modal>
       )}
 
