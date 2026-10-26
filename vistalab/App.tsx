@@ -159,6 +159,29 @@ function ProductDescriptionPreview({ text, className }: { text: string; classNam
   return <p className={`${className} line-clamp-2`}>{preview}</p>;
 }
 
+function ScrollReveal({ children, className, delay = 0 }: { children: React.ReactNode; className: string; delay?: number }) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setVisible(true);
+      observer.unobserve(entry.target);
+    }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return <div ref={elementRef} style={{ transitionDelay: visible ? `${delay}ms` : '0ms' }} className={`${className} transform-gpu transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-5 scale-[0.98] opacity-0'}`}>{children}</div>;
+}
+
 function normalizeProductDescriptionInput(text: string): string {
   if (/<\/?[a-z][^>]*>/iu.test(text)) return text;
   return text.replace(/\s*•\s*/gu, '\n').replace(/^\s*[-*]\s*/gmu, '');
@@ -1574,10 +1597,14 @@ export default function App() {
                 <input
                   type="text"
                   placeholder={tx('Search products or brands...', 'ស្វែងរកផលិតផល ឬម៉ាកផលិតផល...')}
+                  list="product-search-options"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-900"
                 />
+                <datalist id="product-search-options">
+                  {Array.from(new Set(products.flatMap((product) => [product.name_en, product.name_kh, product.brand, product.code, product.id].filter((value): value is string => Boolean(value?.trim()))))).map((value) => <option key={value} value={value} />)}
+                </datalist>
               </div>
             </div>
 
@@ -1606,7 +1633,8 @@ export default function App() {
                     || p.name_en.toLowerCase().includes(query)
                     || p.name_kh.toLowerCase().includes(query)
                     || p.brand.toLowerCase().includes(query)
-                    || (p.code ?? '').toLowerCase().includes(query);
+                    || (p.code ?? '').toLowerCase().includes(query)
+                    || p.id.toLowerCase().includes(query);
                 })
                 .sort((a, b) => {
                   const codeA = a.code ?? '';
@@ -1616,10 +1644,11 @@ export default function App() {
                   return groupA.localeCompare(groupB, undefined, { numeric: true })
                     || codeA.localeCompare(codeB, undefined, { numeric: true });
                 })
-                .map((prod) => (
-                  <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
-                    <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-48 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
-                      {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-contain p-2 sm:p-3" />}
+                .map((prod, index) => (
+                  <ScrollReveal key={prod.id} className="min-w-0" delay={(index % 8) * 45}>
+                  <div className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                    <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-40 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
+                      {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-cover" />}
                       <span className="absolute top-2 left-2 max-w-[calc(100%-4.5rem)] truncate bg-white/90 text-slate-900 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded">
                         {prod.brand}
                       </span>
@@ -1635,18 +1664,18 @@ export default function App() {
                           {localizedProductName(prod)}
                         </h3>
                         {prod.code && <p className="mt-1 text-[9px] font-semibold tracking-wide text-slate-500 sm:text-[10px]">{tx('Code', 'កូដ')}: {prod.code}</p>}
-                        <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 hidden break-words text-[10px] text-slate-500 sm:mt-2 sm:block sm:text-xs" />
                       </div>
                       <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center">
                         <button
                           onClick={() => setSelectedProduct(prod)}
                           className="text-[10px] sm:text-xs font-bold text-slate-700 hover:text-green-900"
                         >
-                          {t.viewDetails}
+                          {tx('See more', 'មើលបន្ថែម')}
                         </button>
                       </div>
                     </div>
                   </div>
+                  </ScrollReveal>
                 ))}
             </div>
           </div>
