@@ -4,7 +4,7 @@ import {
   MapPin, Search, Menu, X, ChevronRight, ChevronDown, CheckCircle, 
   Users, Layers, ExternalLink, Plus, Edit, Trash2, Filter, Eye, 
   ArrowRight, Sparkles, MessageCircle, BarChart3, FileText, Settings,
-  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon, Download
+  Upload, Tag, Award, Briefcase, RefreshCw, AlertCircle, Check, Database, HardDrive, Image as ImageIcon, Download, Copy, CheckCheck
 } from 'lucide-react';
 import {
   cambodianProvinces,
@@ -485,6 +485,7 @@ export default function App() {
   
   // Modals & Drawers
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productLinkCopied, setProductLinkCopied] = useState(false);
   const [productImageZoomOpen, setProductImageZoomOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -493,6 +494,44 @@ export default function App() {
   
   // Toast notifications
   const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    if (!productsLoaded) return;
+    const productId = new URLSearchParams(window.location.search).get('product');
+    if (!productId) return;
+    const product = products.find((item) => item.id === productId);
+    if (product) setSelectedProduct(product);
+  }, [products, productsLoaded]);
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', selectedProduct.id);
+    window.history.replaceState(null, '', url);
+    const previousTitle = document.title;
+    document.title = `${selectedProduct.name_en} | VistaLab Cambodia`;
+    return () => {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get('product') === selectedProduct.id) {
+        currentUrl.searchParams.delete('product');
+        window.history.replaceState(null, '', currentUrl);
+      }
+      document.title = previousTitle;
+    };
+  }, [selectedProduct]);
+
+  const copyProductLink = async () => {
+    if (!selectedProduct) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', selectedProduct.id);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setProductLinkCopied(true);
+      window.setTimeout(() => setProductLinkCopied(false), 2200);
+    } catch {
+      triggerToast(tx('Could not copy the link. Please copy it from your browser address bar.', 'មិនអាចចម្លងតំណបានទេ។ សូមចម្លងពីរបារអាសយដ្ឋានកម្មវិធីរុករក។'));
+    }
+  };
 
   // Contact & Settings state
   const [settings, setSettings] = useState(() => {
@@ -2658,6 +2697,10 @@ export default function App() {
 
             <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
               <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-green-800"><MessageCircle className="h-4 w-4" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
+              <button type="button" onClick={() => void copyProductLink()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50" aria-label={tx('Copy product link', 'ចម្លងតំណផលិតផល')}>
+                {productLinkCopied ? <CheckCheck className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4 text-green-700" />}
+                {productLinkCopied ? tx('Link copied', 'បានចម្លងតំណ') : tx('Share product', 'ចែករំលែកផលិតផល')}
+              </button>
               <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 text-green-700" />Telegram</a>
               <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
             </div>
