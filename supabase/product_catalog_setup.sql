@@ -40,8 +40,13 @@ create policy "Admins can edit products"
   using (exists (select 1 from public.admin_users where user_id = auth.uid()))
   with check (exists (select 1 from public.admin_users where user_id = auth.uid()));
 
+drop policy if exists "Admins can delete products" on public.products;
+create policy "Admins can delete products"
+  on public.products for delete to authenticated
+  using (exists (select 1 from public.admin_users where user_id = auth.uid()));
+
 grant select on public.products to anon, authenticated;
-grant insert, update on public.products to authenticated;
+grant insert, update, delete on public.products to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('product-images', 'product-images', true, 5242880, array['image/webp'])

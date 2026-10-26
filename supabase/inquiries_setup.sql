@@ -49,6 +49,11 @@ create policy "Admins can update inquiries"
   using (exists (select 1 from public.admin_users where user_id = auth.uid()))
   with check (exists (select 1 from public.admin_users where user_id = auth.uid()));
 
+drop policy if exists "Admins can delete inquiries" on public.inquiries;
+create policy "Admins can delete inquiries"
+  on public.inquiries for delete to authenticated
+  using (exists (select 1 from public.admin_users where user_id = auth.uid()));
+
 revoke all on public.inquiries from anon, public;
 grant insert on public.inquiries to anon, authenticated;
-grant select, update on public.inquiries to authenticated;
+grant select, update, delete on public.inquiries to authenticated;

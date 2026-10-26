@@ -30,7 +30,7 @@ import { CountryFlag } from './components/CountryFlag';
 import { loadStoredArray } from './utils/storage';
 import { translations, brandDescriptionsKh, productSpecsKh, productBadgesKh } from './data/translations';
 import { fetchWebsiteEvents, trackWebsiteEvent, type WebsiteEvent } from './utils/analytics';
-import { loadProductsFromSupabase, saveProductToSupabase } from './utils/productRepository';
+import { deleteProductFromSupabase, loadProductsFromSupabase, saveProductToSupabase } from './utils/productRepository';
 import { loadSiteContent, saveSiteContent, type SiteContent } from './utils/siteContentRepository';
 import { downloadSiteBackup } from './utils/backup';
 
@@ -2157,6 +2157,26 @@ export default function App() {
                     </div>
                     <span className="line-clamp-2 min-w-0 flex-1 whitespace-normal text-sm font-bold leading-tight text-slate-800">{brand.name}</span>
                     <button type="button" onClick={() => setEditingBrand({ ...brand, website: brand.website || getDefaultBrandWebsite(brand.name) })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
+                    <button type="button" aria-label={`Delete ${brand.name}`} title={tx('Delete brand', 'លុបម៉ាក')} onClick={async () => {
+                      const linkedCount = products.filter((product) => product.brand === brand.name).length;
+                      if (!window.confirm(tx(`Delete ${brand.name}? ${linkedCount ? `${linkedCount} linked product(s) will remain without a brand.` : 'This cannot be undone.'}`, `លុប ${brand.name} មែនទេ?`))) return;
+                      const nextBrands = brands.filter((item) => item.id !== brand.id);
+                      try {
+                        if (supabaseClient) {
+                          setSiteContentSyncing(true);
+                          const saved = await saveSiteContent(nextBrands, news, settings);
+                          siteContentBaseline.current = JSON.stringify(saved);
+                          setBrands(saved.brands);
+                          setNews(saved.news);
+                          setSettings(saved.settings);
+                        } else setBrands(nextBrands);
+                        if (linkedCount) setProducts((current) => current.map((product) => product.brand === brand.name ? { ...product, brand: '' } : product));
+                        if (editingBrand?.id === brand.id) setEditingBrand(null);
+                        triggerToast(tx('Brand deleted.', 'បានលុបម៉ាក។'));
+                      } catch (error) {
+                        triggerToast(getSupabaseErrorMessage(error, 'Could not delete brand.'));
+                      } finally { setSiteContentSyncing(false); }
+                    }} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
@@ -2341,7 +2361,7 @@ export default function App() {
                           </span>
                         </td>
                         <td className="p-3">
-                          <button
+                          <div className="flex items-center gap-3"><button
                             onClick={async () => {
                               try {
                                 if (!supabaseClient) throw new Error('Supabase is not configured.');
@@ -2354,7 +2374,17 @@ export default function App() {
                             className="text-[11px] font-bold text-green-900 hover:underline"
                           >
                             {tx('Mark Contacted', 'សម្គាល់ថាបានទាក់ទង')}
-                          </button>
+                          </button><button type="button" onClick={async () => {
+                            if (!window.confirm(tx(`Delete inquiry from ${inq.name}?`, `លុបសំណើពី ${inq.name} មែនទេ?`))) return;
+                            try {
+                              if (supabaseClient) {
+                                const { error } = await supabaseClient.from('inquiries').delete().eq('id', inq.id);
+                                if (error) throw error;
+                              }
+                              setInquiries((current) => current.filter((item) => item.id !== inq.id));
+                              triggerToast(tx('Inquiry deleted.', 'បានលុបសំណើ។'));
+                            } catch (error) { triggerToast(getSupabaseErrorMessage(error, 'Could not delete inquiry.')); }
+                          }} className="inline-flex items-center gap-1 font-bold text-red-700 hover:underline"><Trash2 className="h-3.5 w-3.5"/>{tx('Delete', 'លុប')}</button></div>
                         </td>
                       </tr>
                     ))}
@@ -2592,6 +2622,17 @@ export default function App() {
                     {product.image ? <img src={product.image} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${product.imageBg} text-[9px] font-bold text-slate-600`}>{product.imageBadge}</div>}
                     <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-800">{product.name_en}</span>
                     <button type="button" onClick={() => setEditingProduct({ ...product, specs: normalizeProductDescriptionInput(product.specs), specs_kh: product.specs_kh ? normalizeProductDescriptionInput(product.specs_kh) : undefined })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
+                    <button type="button" aria-label={`Delete ${product.name_en}`} title={tx('Delete product', 'លុបផលិតផល')} onClick={async () => {
+                      if (!window.confirm(tx(`Delete ${product.name_en}? This cannot be undone.`, `លុប ${product.name_en} មែនទេ?`))) return;
+                      try {
+                        if (supabaseClient) await deleteProductFromSupabase(product.id);
+                        setProducts((current) => current.filter((item) => item.id !== product.id));
+                        if (editingProduct?.id === product.id) setEditingProduct(null);
+                        triggerToast(tx('Product deleted.', 'បានលុបផលិតផល។'));
+                      } catch (error) {
+                        triggerToast(getSupabaseErrorMessage(error, 'Could not delete product.'));
+                      }
+                    }} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
@@ -2688,21 +2729,21 @@ export default function App() {
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</p>
                   <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
                 </div>
-                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
+                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm sm:col-span-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Product code', 'កូដផលិតផល')}</p>
                   <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.code?.trim() || tx('Not assigned', 'មិនទាន់កំណត់')}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
-              <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-green-800"><MessageCircle className="h-4 w-4" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
-              <button type="button" onClick={() => void copyProductLink()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50" aria-label={tx('Copy product link', 'ចម្លងតំណផលិតផល')}>
+            <div className="grid grid-cols-2 gap-2.5 border-t border-slate-100 pt-4 sm:gap-3">
+              <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-green-700 px-3 py-3 text-sm font-extrabold leading-snug text-white shadow-sm transition hover:bg-green-800"><MessageCircle className="h-4 w-4 shrink-0" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
+              <button type="button" onClick={() => void copyProductLink()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50" aria-label={tx('Copy product link', 'ចម្លងតំណផលិតផល')}>
                 {productLinkCopied ? <CheckCheck className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4 text-green-700" />}
                 {productLinkCopied ? tx('Link copied', 'បានចម្លងតំណ') : tx('Share product', 'ចែករំលែកផលិតផល')}
               </button>
-              <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 text-green-700" />Telegram</a>
-              <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
+              <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 shrink-0 text-green-700" />Telegram</a>
+              <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 shrink-0 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
             </div>
         </Modal>
       )}
