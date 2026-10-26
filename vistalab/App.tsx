@@ -1618,7 +1618,7 @@ export default function App() {
                 })
                 .map((prod) => (
                   <div key={prod.id} className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
-                    <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-36 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
+                    <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-48 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
                       {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-contain p-2 sm:p-3" />}
                       <span className="absolute top-2 left-2 max-w-[calc(100%-4.5rem)] truncate bg-white/90 text-slate-900 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded">
                         {prod.brand}
@@ -1635,7 +1635,7 @@ export default function App() {
                           {localizedProductName(prod)}
                         </h3>
                         {prod.code && <p className="mt-1 text-[9px] font-semibold tracking-wide text-slate-500 sm:text-[10px]">{tx('Code', 'កូដ')}: {prod.code}</p>}
-                        <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 break-words text-[10px] text-slate-500 sm:mt-2 sm:text-xs" />
+                        <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 hidden break-words text-[10px] text-slate-500 sm:mt-2 sm:block sm:text-xs" />
                       </div>
                       <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center">
                         <button
