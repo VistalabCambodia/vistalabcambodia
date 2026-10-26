@@ -156,7 +156,7 @@ function ProductDescriptionPreview({ text, className }: { text: string; classNam
     : text.split(/[\n•]+/u).map((line) => line.trim().replace(/^[-*]\s*/u, '')).join(' ');
   const preview = plainText.replace(/\s+/gu, ' ').trim();
   if (!preview) return null;
-  return <p className={`${className} line-clamp-2`}>{preview}</p>;
+  return <p style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }} className={`${className} line-clamp-2`}>{preview}</p>;
 }
 
 function ScrollReveal({ children, className, delay = 0 }: { children: React.ReactNode; className: string; delay?: number }) {
@@ -1645,8 +1645,8 @@ export default function App() {
                     || codeA.localeCompare(codeB, undefined, { numeric: true });
                 })
                 .map((prod, index) => (
-                  <ScrollReveal key={prod.id} className="min-w-0" delay={(index % 8) * 45}>
-                  <div className="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                  <ScrollReveal key={prod.id} className="h-full min-w-0" delay={(index % 8) * 45}>
+                  <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:rounded-2xl">
                     <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-40 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
                       {prod.image && <img src={prod.image} alt={prod.name_en} className="absolute inset-0 h-full w-full bg-white object-contain p-1 sm:p-2" />}
                       <span className="absolute top-2 left-2 max-w-[calc(100%-4.5rem)] truncate bg-white/90 text-slate-900 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded">
@@ -1659,20 +1659,19 @@ export default function App() {
                     </button>
                     <div className="min-w-0 p-3 sm:p-5 flex-grow flex flex-col justify-between gap-3 sm:gap-4">
                       <div>
+                        <span className="text-[8px] sm:text-[10px] font-extrabold text-green-600 uppercase line-clamp-1">{localizedCategory(prod.category)}</span>
                         <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-1 line-clamp-2 break-words">
                           {localizedProductName(prod)}
                         </h3>
-                        <div className="mt-2 space-y-1 text-[10px] leading-snug text-slate-500 sm:text-xs">
-                          <p className="break-all"><span className="font-semibold text-slate-600">{tx('ID', 'លេខសម្គាល់')}:</span> {prod.code?.trim() || prod.id}</p>
-                          <p className="break-words"><span className="font-semibold text-slate-600">{tx('Pack', 'ការវេចខ្ចប់')}:</span> {prod.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
-                        </div>
+                        {prod.code && <p className="mt-1 text-[9px] font-semibold tracking-wide text-slate-500 sm:text-[10px]">{tx('Code', 'កូដ')}: {prod.code}</p>}
+                        <ProductDescriptionPreview text={localizedProductSpecs(prod)} className="mt-1.5 break-words text-[10px] text-slate-500 sm:mt-2 sm:text-xs" />
                       </div>
                       <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center">
                         <button
                           onClick={() => setSelectedProduct(prod)}
                           className="text-[10px] sm:text-xs font-bold text-slate-700 hover:text-green-900"
                         >
-                          {tx('See more', 'មើលបន្ថែម')}
+                          {t.viewDetails}
                         </button>
                       </div>
                     </div>
