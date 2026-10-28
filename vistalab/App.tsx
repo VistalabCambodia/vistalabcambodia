@@ -1625,10 +1625,10 @@ export default function App() {
             {/* Product Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
               {products
-                .filter(p => (!activeBrandFilter || p.brand === activeBrandFilter))
-                .filter(p => (activeCategory === 'All' || p.category === activeCategory))
+                .filter(p => (!activeBrandFilter || p.brand.trim().toLocaleLowerCase() === activeBrandFilter.trim().toLocaleLowerCase()))
+                .filter(p => (activeBrandFilter || activeCategory === 'All' || p.category === activeCategory))
                 .filter((p) => {
-                  const query = searchQuery.trim().toLowerCase();
+                  const query = activeBrandFilter ? '' : searchQuery.trim().toLowerCase();
                   return !query
                     || p.name_en.toLowerCase().includes(query)
                     || p.name_kh.toLowerCase().includes(query)
