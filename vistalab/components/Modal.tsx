@@ -4,14 +4,15 @@ type ModalProps = {
   children: ReactNode;
   label: string;
   onClose: () => void;
-  size?: 'lg' | 'xl';
+  size?: 'lg' | 'xl' | 'landscape';
   className?: string;
   closeOnBackdrop?: boolean;
 };
 
 const sizeClasses = {
   lg: 'max-w-lg',
-  xl: 'max-w-xl'
+  xl: 'max-w-xl',
+  landscape: 'max-w-6xl'
 };
 
 export function Modal({ children, label, onClose, size = 'lg', className = '', closeOnBackdrop = false }: ModalProps) {

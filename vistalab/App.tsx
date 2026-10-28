@@ -1569,10 +1569,15 @@ export default function App() {
 
                   <div className="mx-3 mb-3 flex items-center border-t border-slate-100 pt-3 sm:mx-6 sm:mb-6 sm:pt-4">
                     <button
-                      onClick={() => setSelectedBrand(b)}
+                      onClick={() => {
+                        setActiveBrandFilter(b.name);
+                        setActiveCategory('All');
+                        setSearchQuery('');
+                        setCurrentView('products');
+                      }}
                       className="text-xs font-bold text-slate-700 hover:text-green-900 flex items-center space-x-1"
                     >
-                      <span>{t.viewBrand}</span>
+                      <span>{tx('View Brand Products', 'មើលផលិតផលរបស់ម៉ាកនេះ')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -2732,63 +2737,71 @@ export default function App() {
       {}
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <Modal label="Product details" onClose={() => setSelectedProduct(null)} size="xl" closeOnBackdrop className="relative animate-fadeIn space-y-4 sm:space-y-5">
+        <Modal label="Product details" onClose={() => setSelectedProduct(null)} size="landscape" closeOnBackdrop className="relative animate-fadeIn">
             <button
               onClick={() => setSelectedProduct(null)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800"
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/90 p-2 text-slate-400 shadow-sm hover:text-slate-800"
+              aria-label={tx('Close product details', 'បិទព័ត៌មានលម្អិតផលិតផល')}
             >
               <X className="w-5 h-5" />
             </button>
 
-            <button type="button" onClick={() => selectedProduct.image && setProductImageZoomOpen(true)} aria-label="Zoom product image" className={`flex h-56 w-full items-center justify-center overflow-hidden rounded-2xl bg-white text-2xl font-black text-slate-600/50 uppercase sm:h-72 ${selectedProduct.image ? 'cursor-zoom-in' : ''}`}>
-              {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl bg-white object-contain p-2" /> : localizedProductBadge(selectedProduct)}
-            </button>
-            {productImageZoomOpen && selectedProduct.image && (
-              <div role="dialog" aria-modal="true" aria-label={`${localizedProductName(selectedProduct)} image`} className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/90 p-4" onClick={() => setProductImageZoomOpen(false)}>
-                <button type="button" onClick={() => setProductImageZoomOpen(false)} aria-label="Close image zoom" className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900">Close</button>
-                <img src={selectedProduct.image} alt={localizedProductName(selectedProduct)} className="max-h-[90vh] max-w-[95vw] cursor-zoom-out object-contain" onClick={(event) => event.stopPropagation()} />
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+              <div className="lg:sticky lg:top-0">
+                <button type="button" onClick={() => selectedProduct.image && setProductImageZoomOpen(true)} aria-label="Zoom product image" className={`flex h-56 w-full items-center justify-center overflow-hidden rounded-2xl bg-white text-2xl font-black text-slate-600/50 uppercase sm:h-72 lg:h-[min(70vh,42rem)] ${selectedProduct.image ? 'cursor-zoom-in' : ''}`}>
+                  {selectedProduct.image ? <img src={selectedProduct.image} alt={lang === 'KH' ? localizedProductName(selectedProduct) : selectedProduct.name_en} className="h-full w-full rounded-2xl bg-white object-contain p-2" /> : localizedProductBadge(selectedProduct)}
+                </button>
+                {productImageZoomOpen && selectedProduct.image && (
+                  <div role="dialog" aria-modal="true" aria-label={`${localizedProductName(selectedProduct)} image`} className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/90 p-4" onClick={() => setProductImageZoomOpen(false)}>
+                    <button type="button" onClick={() => setProductImageZoomOpen(false)} aria-label="Close image zoom" className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900">Close</button>
+                    <img src={selectedProduct.image} alt={localizedProductName(selectedProduct)} className="max-h-[90vh] max-w-[95vw] cursor-zoom-out object-contain" onClick={(event) => event.stopPropagation()} />
+                  </div>
+                )}
               </div>
-            )}
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span title={selectedProduct.origin} className="flex h-9 min-w-14 items-center justify-center rounded-xl border border-slate-200 bg-white px-1.5 shadow-sm">
-                  <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
-                </span>
-                <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(selectedProduct.category)}</span>
-              </div>
-              <h3 className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">{localizedProductName(selectedProduct)}</h3>
-              <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
-                <ProductDescription text={localizedProductSpecs(selectedProduct)} className="px-3 py-2 text-sm leading-6 sm:px-4" />
-              </div>
-            </div>
 
-            <div className="rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-slate-50 p-3 sm:p-4">
-              <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-green-800">{tx('Product information', 'ព័ត៌មានផលិតផល')}</h4>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Country of Origin', 'ប្រទេសដើម')}</p>
-                  <p className="mt-1 font-extrabold text-slate-900">{tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
+              <div className="space-y-4 pt-10 lg:pt-8">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span title={selectedProduct.origin} className="flex h-9 min-w-14 items-center justify-center rounded-xl border border-slate-200 bg-white px-1.5 shadow-sm">
+                      <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
+                    </span>
+                    <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(selectedProduct.category)}</span>
+                  </div>
+                  <h3 className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">{localizedProductName(selectedProduct)}</h3>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
+                    <ProductDescription text={localizedProductSpecs(selectedProduct)} className="px-3 py-2 text-sm leading-6 sm:px-4" />
+                  </div>
                 </div>
-                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</p>
-                  <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+
+                <div className="rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-slate-50 p-3 sm:p-4">
+                  <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-green-800">{tx('Product information', 'ព័ត៌មានផលិតផល')}</h4>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Country of Origin', 'ប្រទេសដើម')}</p>
+                      <p className="mt-1 font-extrabold text-slate-900">{tx(selectedProduct.origin, selectedProduct.origin === 'Malaysia' ? 'ម៉ាឡេស៊ី' : selectedProduct.origin)}</p>
+                    </div>
+                    <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Sizes / Packaging', 'ទំហំ / ការវេចខ្ចប់')}</p>
+                      <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.sizes || tx('Standard packaging', 'ការវេចខ្ចប់ស្តង់ដារ')}</p>
+                    </div>
+                    <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm sm:col-span-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Product code', 'កូដផលិតផល')}</p>
+                      <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.code?.trim() || tx('Not assigned', 'មិនទាន់កំណត់')}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-xl border border-white bg-white/90 p-3 shadow-sm sm:col-span-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Product code', 'កូដផលិតផល')}</p>
-                  <p className="mt-1 font-extrabold text-slate-900">{selectedProduct.code?.trim() || tx('Not assigned', 'មិនទាន់កំណត់')}</p>
+
+                <div className="grid grid-cols-2 gap-2.5 border-t border-slate-100 pt-4 sm:gap-3">
+                  <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-green-700 px-3 py-3 text-sm font-extrabold leading-snug text-white shadow-sm transition hover:bg-green-800"><MessageCircle className="h-4 w-4 shrink-0" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
+                  <button type="button" onClick={() => void copyProductLink()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50" aria-label={tx('Copy product link', 'ចម្លងតំណផលិតផល')}>
+                    {productLinkCopied ? <CheckCheck className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4 text-green-700" />}
+                    {productLinkCopied ? tx('Link copied', 'បានចម្លងតំណ') : tx('Share product', 'ចែករំលែកផលិតផល')}
+                  </button>
+                  <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 shrink-0 text-green-700" />Telegram</a>
+                  <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 shrink-0 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 border-t border-slate-100 pt-4 sm:gap-3">
-              <button type="button" onClick={() => openInquiry(localizedProductName(selectedProduct), selectedProduct.brand)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-green-700 px-3 py-3 text-sm font-extrabold leading-snug text-white shadow-sm transition hover:bg-green-800"><MessageCircle className="h-4 w-4 shrink-0" />{tx('Ask about this product', 'សាកសួរអំពីផលិតផលនេះ')}</button>
-              <button type="button" onClick={() => void copyProductLink()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50" aria-label={tx('Copy product link', 'ចម្លងតំណផលិតផល')}>
-                {productLinkCopied ? <CheckCheck className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4 text-green-700" />}
-                {productLinkCopied ? tx('Link copied', 'បានចម្លងតំណ') : tx('Share product', 'ចែករំលែកផលិតផល')}
-              </button>
-              <a href={settings.telegram.startsWith('http') ? settings.telegram : `https://t.me/${String(settings.telegram).replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Send className="h-4 w-4 shrink-0 text-green-700" />Telegram</a>
-              <a href={`mailto:${settings.email}?subject=${encodeURIComponent(`Product inquiry: ${localizedProductName(selectedProduct)}`)}`} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50"><Mail className="h-4 w-4 shrink-0 text-green-700" />{tx('Email', 'អ៊ីមែល')}</a>
             </div>
         </Modal>
       )}
