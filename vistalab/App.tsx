@@ -116,6 +116,10 @@ function getDefaultBrandWebsite(name: string): string {
   return normalized === "mychef's" || normalized === 'mychefs' ? 'https://www.mychefs.com.my/' : '';
 }
 
+function normalizeBrandName(name: string): string {
+  return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLocaleLowerCase();
+}
+
 function getSafeBrandWebsite(website?: string): string | null {
   if (!website?.trim()) return null;
   try {
@@ -1630,7 +1634,7 @@ export default function App() {
             {/* Product Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
               {products
-                .filter(p => (!activeBrandFilter || p.brand.trim().toLocaleLowerCase() === activeBrandFilter.trim().toLocaleLowerCase()))
+                .filter(p => (!activeBrandFilter || normalizeBrandName(p.brand) === normalizeBrandName(activeBrandFilter)))
                 .filter(p => (activeBrandFilter || activeCategory === 'All' || p.category === activeCategory))
                 .filter((p) => {
                   const query = activeBrandFilter ? '' : searchQuery.trim().toLowerCase();
