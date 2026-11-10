@@ -358,6 +358,7 @@ export default function App() {
   const [websiteEvents, setWebsiteEvents] = useState<WebsiteEvent[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState('');
+  const [analyticsRange, setAnalyticsRange] = useState<7 | 30 | 90>(7);
   const [dataHealth, setDataHealth] = useState<DataHealth | null>(null);
   const [dataHealthLoading, setDataHealthLoading] = useState(false);
   const [dataHealthError, setDataHealthError] = useState('');
@@ -407,8 +408,45 @@ export default function App() {
     if (languageLoadingTimer.current !== null) window.clearTimeout(languageLoadingTimer.current);
   }, []);
   const selectedHub = distributionHubs.find((hub) => hub.id === selectedHubId) ?? distributionHubs[0];
-  const analyticsWeekEvents = websiteEvents.filter((event) => Date.now() - Date.parse(event.created_at) <= 7 * 24 * 60 * 60 * 1000);
-  const popularProducts = Object.values(websiteEvents
+  const analyticsRangeMs = analyticsRange * 24 * 60 * 60 * 1000;
+  const analyticsRangeStart = Date.now() - analyticsRangeMs;
+  const analyticsEvents = websiteEvents.filter((event) => Date.parse(event.created_at) >= analyticsRangeStart);
+  const previousAnalyticsEvents = websiteEvents.filter((event) => {
+    const age = Date.now() - Date.parse(event.created_at);
+    return age >= analyticsRangeMs && age < analyticsRangeMs * 2;
+  });
+  const analyticsPageViews = analyticsEvents.filter((event) => event.event_type === 'page_view').length;
+  const analyticsProductViews = analyticsEvents.filter((event) => event.event_type === 'product_view').length;
+  const analyticsVisitors = new Set(analyticsEvents.map((event) => event.visitor_id)).size;
+  const analyticsPreviousPageViews = previousAnalyticsEvents.filter((event) => event.event_type === 'page_view').length;
+  const analyticsPageChange = analyticsPreviousPageViews ? Math.round(((analyticsPageViews - analyticsPreviousPageViews) / analyticsPreviousPageViews) * 100) : null;
+  const analyticsProductRate = analyticsPageViews ? Math.round((analyticsProductViews / analyticsPageViews) * 100) : 0;
+  const analyticsDaily = Array.from({ length: analyticsRange }, (_, index) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (analyticsRange - index - 1));
+    const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const events = analyticsEvents.filter((event) => {
+      const date = new Date(event.created_at);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === key;
+    });
+    return {
+      key,
+      date: day,
+      pageViews: events.filter((event) => event.event_type === 'page_view').length,
+      productViews: events.filter((event) => event.event_type === 'product_view').length,
+      visitors: new Set(events.map((event) => event.visitor_id)).size
+    };
+  });
+  const popularPages = Object.entries(analyticsEvents
+    .filter((event) => event.event_type === 'page_view')
+    .reduce<Record<string, number>>((counts, event) => {
+      counts[event.page_path] = (counts[event.page_path] ?? 0) + 1;
+      return counts;
+    }, {}))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const popularProducts = Object.values(analyticsEvents
     .filter((event) => event.event_type === 'product_view')
     .reduce<Record<string, { name: string; views: number }>>((counts, event) => {
       const id = event.product_id ?? event.product_name ?? 'unknown';
@@ -419,6 +457,14 @@ export default function App() {
     }, {}))
     .sort((a, b) => b.views - a.views)
     .slice(0, 5);
+  const analyticsChartMax = Math.max(1, ...analyticsDaily.flatMap((day) => [day.pageViews, day.productViews]));
+  const analyticsChartWidth = 720;
+  const analyticsChartHeight = 230;
+  const analyticsChartLeft = 42;
+  const analyticsChartTop = 12;
+  const analyticsChartBottom = 30;
+  const analyticsPlotWidth = analyticsChartWidth - analyticsChartLeft - 10;
+  const analyticsPlotHeight = analyticsChartHeight - analyticsChartTop - analyticsChartBottom;
 
   useEffect(() => {
     if (!supabaseClient) { setAdminAuthReady(true); return; }
@@ -2529,56 +2575,121 @@ export default function App() {
 
             </>}
             {activeAdminSection === 'analytics' && <section className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div>
                   <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900"><BarChart3 className="h-5 w-5 text-green-700" aria-hidden="true" />{tx('Website traffic', 'ចរាចរណ៍គេហទំព័រ')}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{tx('A quick look at page visits and products people open.', 'មើលចំនួនទំព័រដែលបានចូលមើល និងផលិតផលដែលអ្នកប្រើបានបើក។')}</p>
+                  <p className="mt-1 text-sm text-slate-500">{tx('Monitor visits, product interest, and activity trends.', 'តាមដានការចូលមើល ចំណាប់អារម្មណ៍លើផលិតផល និងនិន្នាការសកម្មភាព។')}</p>
                 </div>
-                <button type="button" onClick={() => void refreshWebsiteAnalytics()} disabled={analyticsLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
-                  <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} aria-hidden="true" />{analyticsLoading ? tx('Loading…', 'កំពុងផ្ទុក…') : tx('Refresh', 'ផ្ទុកឡើងវិញ')}
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex rounded-xl bg-slate-100 p-1" role="group" aria-label={tx('Analytics date range', 'រយៈពេលស្ថិតិ')}>
+                    {([7, 30, 90] as const).map((days) => <button key={days} type="button" aria-pressed={analyticsRange === days} onClick={() => setAnalyticsRange(days)} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${analyticsRange === days ? 'bg-white text-green-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{days} {tx('days', 'ថ្ងៃ')}</button>)}
+                  </div>
+                  <button type="button" onClick={() => void refreshWebsiteAnalytics()} disabled={analyticsLoading} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-green-300 hover:bg-green-50 disabled:opacity-60">
+                    <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} aria-hidden="true" />{analyticsLoading ? tx('Loading…', 'កំពុងផ្ទុក…') : tx('Refresh', 'ផ្ទុកឡើងវិញ')}
+                  </button>
+                </div>
               </div>
 
               {analyticsError ? <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
                 <p className="font-extrabold">{tx('Analytics setup is needed', 'ត្រូវរៀបចំស្ថិតិជាមុន')}</p>
-                <p className="mt-1">{tx('Run supabase/website_analytics_setup.sql in the Supabase SQL Editor, then refresh this page. New visits will appear after setup.', 'ដំណើរការឯកសារ supabase/website_analytics_setup.sql ក្នុង Supabase SQL Editor រួចចុចផ្ទុកឡើងវិញ។ ការចូលមើលថ្មីនឹងបង្ហាញបន្ទាប់ពីរៀបចំរួច។')}</p>
+                <p className="mt-1">{tx('Run supabase/website_analytics_setup.sql in the Supabase SQL Editor, then refresh this page. New visits will appear after setup.', 'ដំណើរការឯកសារ supabase/website_analytics_setup.sql ក្នុង Supabase SQL Editor រួចចុចផ្ទុកឡើងវិញ។ ការចូលមើលថ្មីនឹងបង្ហាញនៅទីនេះ។')}</p>
                 <p className="mt-2 break-words text-xs text-amber-800">{analyticsError}</p>
               </div> : <>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {[
-                    { label: tx('Page views · 7 days', 'ការមើលទំព័រ · ៧ ថ្ងៃ'), value: analyticsWeekEvents.filter((event) => event.event_type === 'page_view').length, icon: Eye },
-                    { label: tx('Visitors · 7 days', 'អ្នកចូលមើល · ៧ ថ្ងៃ'), value: new Set(analyticsWeekEvents.map((event) => event.visitor_id)).size, icon: Users },
-                    { label: tx('Product views · 7 days', 'ការមើលផលិតផល · ៧ ថ្ងៃ'), value: analyticsWeekEvents.filter((event) => event.event_type === 'product_view').length, icon: Package },
-                  ].map((card) => <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    { label: tx(`Page views · ${analyticsRange} days`, `ការមើលទំព័រ · ${analyticsRange} ថ្ងៃ`), value: analyticsPageViews, icon: Eye },
+                    { label: tx(`Visitor sessions · ${analyticsRange} days`, `ចំនួនវគ្គចូលមើល · ${analyticsRange} ថ្ងៃ`), value: analyticsVisitors, icon: Users },
+                    { label: tx(`Product views · ${analyticsRange} days`, `ការមើលផលិតផល · ${analyticsRange} ថ្ងៃ`), value: analyticsProductViews, icon: Package },
+                    { label: tx('Product interest rate', 'អត្រាចំណាប់អារម្មណ៍លើផលិតផល'), value: `${analyticsProductRate}%`, icon: BarChart3 }
+                  ].map((card, index) => <div key={card.label} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-500"><card.icon className="h-4 w-4 text-green-700" aria-hidden="true" />{card.label}</div>
-                    <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{card.value.toLocaleString()}</p>
+                    <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{typeof card.value === 'number' ? card.value.toLocaleString() : card.value}</p>
+                    {index === 0 && <p className={`mt-2 text-xs font-bold ${analyticsPageChange === null ? 'text-slate-400' : analyticsPageChange >= 0 ? 'text-green-700' : 'text-amber-700'}`}>{analyticsPageChange === null ? tx('No previous period to compare', 'មិនមានទិន្នន័យរយៈពេលមុនសម្រាប់ប្រៀបធៀប') : `${analyticsPageChange > 0 ? '+' : ''}${analyticsPageChange}% ${tx('vs previous period', 'ធៀបនឹងរយៈពេលមុន')}`}</p>}
                   </div>)}
                 </div>
+
+                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div><h3 className="text-base font-extrabold text-slate-900">{tx('Traffic trends', 'និន្នាការចរាចរណ៍')}</h3><p className="mt-1 text-xs text-slate-500">{tx(`Daily page and product views over the last ${analyticsRange} days.`, `ការមើលទំព័រ និងផលិតផលប្រចាំថ្ងៃក្នុងរយៈពេល ${analyticsRange} ថ្ងៃចុងក្រោយ។`)}</p></div>
+                    <div className="flex gap-4 text-xs font-semibold text-slate-600"><span className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-green-600" />{tx('Page views', 'ការមើលទំព័រ')}</span><span className="flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-blue-500" />{tx('Product views', 'ការមើលផលិតផល')}</span></div>
+                  </div>
+                  {analyticsEvents.length ? <div className="mt-5 overflow-x-auto">
+                    <svg role="img" aria-label={tx('Daily page and product view chart', 'តារាងការមើលទំព័រ និងផលិតផលប្រចាំថ្ងៃ')} viewBox={`0 0 ${analyticsChartWidth} ${analyticsChartHeight}`} className="h-56 min-w-[620px] w-full">
+                      {[0, 1, 2, 3, 4].map((tick) => {
+                        const y = analyticsChartTop + (analyticsPlotHeight * tick) / 4;
+                        const value = Math.round(analyticsChartMax * (4 - tick) / 4);
+                        return <g key={tick}><line x1={analyticsChartLeft} x2={analyticsChartWidth - 8} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray={tick === 4 ? undefined : '3 5'} /><text x={analyticsChartLeft - 9} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="10">{value}</text></g>;
+                      })}
+                      {analyticsDaily.map((day, index) => {
+                        const slot = analyticsPlotWidth / analyticsDaily.length;
+                        const barWidth = Math.max(2, Math.min(16, slot * 0.58));
+                        const x = analyticsChartLeft + index * slot + (slot - barWidth) / 2;
+                        const barHeight = (day.pageViews / analyticsChartMax) * analyticsPlotHeight;
+                        const labelStride = Math.max(1, Math.ceil(analyticsRange / 7));
+                        return <g key={day.key}><rect x={x} y={analyticsChartTop + analyticsPlotHeight - barHeight} width={barWidth} height={Math.max(day.pageViews ? 2 : 0, barHeight)} rx="3" fill="#16a34a" opacity="0.72"><title>{`${day.key}: ${day.pageViews} ${tx('page views', 'ការមើលទំព័រ')}`}</title></rect>{index % labelStride === 0 && <text x={x + barWidth / 2} y={analyticsChartHeight - 7} textAnchor="middle" fill="#64748b" fontSize="9">{day.date.toLocaleDateString(lang === 'KH' ? 'km-KH' : 'en-GB', { day: 'numeric', month: 'short' })}</text>}</g>;
+                      })}
+                      <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={analyticsDaily.map((day, index) => {
+                        const x = analyticsChartLeft + (index + 0.5) * (analyticsPlotWidth / analyticsDaily.length);
+                        const y = analyticsChartTop + analyticsPlotHeight - (day.productViews / analyticsChartMax) * analyticsPlotHeight;
+                        return `${x},${y}`;
+                      }).join(' ')} />
+                      {analyticsDaily.map((day, index) => {
+                        const x = analyticsChartLeft + (index + 0.5) * (analyticsPlotWidth / analyticsDaily.length);
+                        const y = analyticsChartTop + analyticsPlotHeight - (day.productViews / analyticsChartMax) * analyticsPlotHeight;
+                        return day.productViews ? <circle key={`product-${day.key}`} cx={x} cy={y} r="3" fill="#3b82f6"><title>{`${day.key}: ${day.productViews} ${tx('product views', 'ការមើលផលិតផល')}`}</title></circle> : null;
+                      })}
+                    </svg>
+                  </div> : <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">{tx('No traffic recorded in this date range yet.', 'មិនទាន់មានចរាចរណ៍ក្នុងរយៈពេលនេះទេ។')}</p>}
+                </section>
 
                 <div className="grid gap-5 xl:grid-cols-2">
                   <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <h3 className="text-base font-extrabold text-slate-900">{tx('Most viewed products', 'ផលិតផលដែលមានអ្នកមើលច្រើន')}</h3>
-                    <p className="mt-1 text-xs text-slate-500">{tx('Based on recorded product opens.', 'ផ្អែកលើចំនួនបើកមើលផលិតផលដែលបានកត់ត្រា។')}</p>
+                    <p className="mt-1 text-xs text-slate-500">{tx(`Product opens · ${analyticsRange} days`, `ការបើកមើលផលិតផល · ${analyticsRange} ថ្ងៃ`)}</p>
                     {popularProducts.length ? <ol className="mt-4 space-y-3">{popularProducts.map((product, index) => <li key={product.name} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-green-100 text-xs font-black text-green-800">{index + 1}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{product.name}</span>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-800">{product.views} {tx('views', 'ដង')}</span>
-                    </li>)}</ol> : <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No product views recorded yet.', 'មិនទាន់មានការមើលផលិតផលទេ។')}</p>}
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-green-100 text-xs font-black text-green-800">{index + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{product.name}</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-green-800">{product.views} {tx('views', 'ដង')}</span>
+                    </li>)}</ol> : <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No product views recorded in this period.', 'មិនទាន់មានការមើលផលិតផលក្នុងរយៈពេលនេះទេ។')}</p>}
                   </section>
-
                   <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h3 className="text-base font-extrabold text-slate-900">{tx('Recent activity', 'សកម្មភាពថ្មីៗ')}</h3>
-                    <p className="mt-1 text-xs text-slate-500">{tx('Latest page and product views.', 'ការមើលទំព័រ និងផលិតផលថ្មីៗ។')}</p>
-                    <div className="mt-4 space-y-2">
-                      {websiteEvents.slice(0, 8).map((event) => <div key={event.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">{event.event_type === 'product_view' ? <Package className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}</span>
-                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-800">{event.event_type === 'product_view' ? event.product_name || tx('Product', 'ផលិតផល') : tx(`${analyticsPageName(event.page_path)} page`, `ទំព័រ ${analyticsPageName(event.page_path)}`)}</span><span className="block text-xs text-slate-500">{event.event_type === 'product_view' ? tx('Product viewed', 'បានមើលផលិតផល') : tx('Page visited', 'បានចូលមើលទំព័រ')}</span></span>
-                        <time className="shrink-0 text-[11px] text-slate-500" dateTime={event.created_at}>{new Date(event.created_at).toLocaleDateString(lang === 'KH' ? 'km-KH' : 'en-GB', { day: 'numeric', month: 'short' })}</time>
-                      </div>)}
-                      {!websiteEvents.length && <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No visits yet. New activity will appear here.', 'មិនទាន់មានអ្នកចូលមើលទេ។ សកម្មភាពថ្មីនឹងបង្ហាញនៅទីនេះ។')}</p>}
-                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900">{tx('Most visited pages', 'ទំព័រដែលមានអ្នកចូលមើលច្រើន')}</h3><p className="mt-1 text-xs text-slate-500">{tx('Popular pages in the selected period.', 'ទំព័រពេញនិយមក្នុងរយៈពេលដែលបានជ្រើស។')}</p>
+                    {popularPages.length ? <ol className="mt-4 space-y-3">{popularPages.map(([page, views], index) => <li key={page} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xs font-black text-blue-700">{index + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{analyticsPageName(page)} {tx('page', 'ទំព័រ')}</span><span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">{views} {tx('views', 'ដង')}</span></li>)}</ol> : <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">{tx('No page views recorded in this period.', 'មិនទាន់មានការមើលទំព័រក្នុងរយៈពេលនេះទេ។')}</p>}
                   </section>
                 </div>
+
+                <section className="rounded-3xl border border-green-200 bg-gradient-to-br from-green-50 to-white p-5 shadow-sm sm:p-6">
+                  <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-900"><Sparkles className="h-4 w-4 text-green-700" aria-hidden="true" />{tx('Suggestions for you', 'យោបល់សម្រាប់អ្នក')}</h3>
+                  <p className="mt-1 text-xs text-slate-600">{tx('Practical next steps based on the activity shown above.', 'ជំហានបន្ទាប់ដែលអាចអនុវត្តបាន ផ្អែកលើសកម្មភាពខាងលើ។')}</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {[
+                      popularProducts[0]
+                        ? tx(`Feature “${popularProducts[0].name}” prominently on the Products page; it leads product interest with ${popularProducts[0].views} views.`, `បង្ហាញ “${popularProducts[0].name}” ឱ្យឃើញច្បាស់នៅទំព័រផលិតផល ព្រោះវានាំមុខដោយមាន ${popularProducts[0].views} ដង។`)
+                        : tx('Share the Products page with customers to start collecting product interest data.', 'ចែករំលែកទំព័រផលិតផលទៅអតិថិជន ដើម្បីចាប់ផ្តើមប្រមូលទិន្នន័យចំណាប់អារម្មណ៍។'),
+                      analyticsPageViews && analyticsProductRate < 20
+                        ? tx(`Product opens are ${analyticsProductRate}% of page visits. Make product cards and “View Details” easier to notice.`, `ការបើកផលិតផលមាន ${analyticsProductRate}% នៃការចូលមើលទំព័រ។ សូមធ្វើឱ្យកាតផលិតផល និង “មើលព័ត៌មានលម្អិត” ងាយសម្គាល់។`)
+                        : analyticsProductViews
+                          ? tx(`Visitors are opening products at a ${analyticsProductRate}% rate. Keep the product inquiry action visible on popular items.`, `អ្នកចូលមើលកំពុងបើកផលិតផលក្នុងអត្រា ${analyticsProductRate}%。 សូមបង្ហាញប៊ូតុងសាកសួរឱ្យច្បាស់លើផលិតផលពេញនិយម។`)
+                          : tx('Add clear product photos and descriptions so visitors know what to open.', 'បន្ថែមរូបថត និងការពិពណ៌នាផលិតផលឱ្យច្បាស់ ដើម្បីឱ្យអ្នកចូលមើលដឹងថាគួរបើកមើលអ្វី។'),
+                      popularPages[0]
+                        ? tx(`The ${analyticsPageName(popularPages[0][0])} page attracts the most visits. Add a visible next step there, such as browsing products or contacting your team.`, `ទំព័រ ${analyticsPageName(popularPages[0][0])} មានអ្នកចូលមើលច្រើនជាងគេ។ បន្ថែមជំហានបន្ទាប់ដែលងាយឃើញ ដូចជាមើលផលិតផល ឬទាក់ទងក្រុមការងារ។`)
+                        : tx('Publish useful product and brand information, then review traffic again after visitors arrive.', 'បោះពុម្ពព័ត៌មានមានប្រយោជន៍អំពីផលិតផល និងម៉ាក រួចពិនិត្យចរាចរណ៍ម្ដងទៀតនៅពេលមានអ្នកចូលមើល។'),
+                      analyticsPageChange !== null && analyticsPageChange < 0
+                        ? tx(`Page visits are down ${Math.abs(analyticsPageChange)}% versus the previous period. Share a product or brand update through your customer channels.`, `ការចូលមើលទំព័រថយចុះ ${Math.abs(analyticsPageChange)}% ធៀបនឹងរយៈពេលមុន។ សូមចែករំលែកព័ត៌មានផលិតផល ឬម៉ាកតាមបណ្តាញអតិថិជន។`)
+                        : tx('Keep comparing this period with the previous one to spot changes in customer interest.', 'បន្តប្រៀបធៀបរយៈពេលនេះជាមួយរយៈពេលមុន ដើម្បីឃើញការប្រែប្រួលចំណាប់អារម្មណ៍របស់អតិថិជន។')
+                    ].map((suggestion, index) => <div key={index} className="rounded-2xl border border-green-100 bg-white/90 p-4 text-sm leading-relaxed text-slate-700"><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-green-100 text-xs font-black text-green-800">{index + 1}</span>{suggestion}</div>)}
+                  </div>
+                </section>
+
+                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-end justify-between gap-2"><div><h3 className="text-base font-extrabold text-slate-900">{tx('Recent activity', 'សកម្មភាពថ្មីៗ')}</h3><p className="mt-1 text-xs text-slate-500">{tx('Latest page and product views in this date range. The dashboard uses up to 1,000 recent events.', 'ការមើលទំព័រ និងផលិតផលថ្មីៗក្នុងរយៈពេលនេះ។ ផ្ទាំងគ្រប់គ្រងប្រើសកម្មភាពថ្មីៗរហូតដល់ ១,០០០។')}</p></div><span className="text-xs font-semibold text-slate-500">{analyticsEvents.length.toLocaleString()} {tx('events', 'សកម្មភាព')}</span></div>
+                  <div className="mt-4 grid gap-2 lg:grid-cols-2">
+                    {analyticsEvents.slice(0, 10).map((event) => <div key={event.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-100 p-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">{event.event_type === 'product_view' ? <Package className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}</span>
+                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-800">{event.event_type === 'product_view' ? event.product_name || tx('Product', 'ផលិតផល') : tx(`${analyticsPageName(event.page_path)} page`, `ទំព័រ ${analyticsPageName(event.page_path)}`)}</span><span className="block text-xs text-slate-500">{event.event_type === 'product_view' ? tx('Product viewed', 'បានមើលផលិតផល') : tx('Page visited', 'បានចូលមើលទំព័រ')}</span></span>
+                      <time className="shrink-0 text-[11px] text-slate-500" dateTime={event.created_at}>{new Date(event.created_at).toLocaleDateString(lang === 'KH' ? 'km-KH' : 'en-GB', { day: 'numeric', month: 'short' })}</time>
+                    </div>)}
+                    {!analyticsEvents.length && <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 lg:col-span-2">{tx('No visits yet in this period. New activity will appear here.', 'មិនទាន់មានអ្នកចូលមើលក្នុងរយៈពេលនេះទេ។ សកម្មភាពថ្មីនឹងបង្ហាញនៅទីនេះ។')}</p>}
+                  </div>
+                </section>
               </>}
             </section>}
             {activeAdminSection === 'storage' && <section className="min-w-0 space-y-5">
