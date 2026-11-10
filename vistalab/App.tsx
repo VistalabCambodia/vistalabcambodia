@@ -2778,7 +2778,7 @@ export default function App() {
 
               {editingProduct && (
                 <Modal label={tx('Edit product', 'កែសម្រួលផលិតផល')} onClose={() => setEditingProduct(null)} size="xl" closeOnBackdrop className="!max-w-4xl !overflow-hidden !p-0">
-                <div className="flex max-h-[calc(100vh-2rem)] flex-col">
+                <div className="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 flex-col">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-7">
                   <div>
                     <h3 className="text-base font-extrabold text-[#202124]">{tx('Edit Product', 'កែសម្រួលផលិតផល')}</h3>
@@ -2793,7 +2793,7 @@ export default function App() {
                     setEditingProduct(null);
                     triggerToast(tx('Product saved.', 'បានរក្សាទុកផលិតផល។'));
                   }}
-                  className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto overscroll-contain p-5 sm:grid-cols-2 sm:p-7"
+                  className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto overscroll-contain p-5 sm:grid-cols-2 sm:p-7"
                 >
                   <input aria-label="Product code" placeholder={tx('Product code (optional)', 'កូដផលិតផល (ស្រេចចិត្ត)')} value={editingProduct.code ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, code: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input required aria-label="Product name in English" placeholder={tx('Product name (English)', 'ឈ្មោះផលិតផល (អង់គ្លេស)')} value={editingProduct.name_en} onChange={(event) => setEditingProduct({ ...editingProduct, name_en: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />

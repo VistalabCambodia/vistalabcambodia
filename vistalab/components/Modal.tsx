@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 type ModalProps = {
   children: ReactNode;
@@ -22,6 +23,8 @@ export function Modal({ children, label, onClose, size = 'lg', className = '', c
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const dialog = dialogRef.current;
     const focusable = dialog?.querySelector<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -50,11 +53,12 @@ export function Modal({ children, label, onClose, size = 'lg', className = '', c
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
       previousFocus?.focus();
     };
   }, []);
 
-  return (
+  return createPortal((
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (closeOnBackdrop && event.target === event.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
@@ -67,5 +71,5 @@ export function Modal({ children, label, onClose, size = 'lg', className = '', c
         {children}
       </div>
     </div>
-  );
+  ), document.body);
 }
