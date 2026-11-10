@@ -2777,6 +2777,15 @@ export default function App() {
               </div>
 
               {editingProduct && (
+                <Modal label={tx('Edit product', 'កែសម្រួលផលិតផល')} onClose={() => setEditingProduct(null)} size="xl" closeOnBackdrop className="!max-w-4xl !overflow-hidden !p-0">
+                <div className="flex max-h-[calc(100vh-2rem)] flex-col">
+                <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-7">
+                  <div>
+                    <h3 className="text-base font-extrabold text-[#202124]">{tx('Edit Product', 'កែសម្រួលផលិតផល')}</h3>
+                    <p className="mt-1 max-w-xl truncate text-xs text-slate-500">{editingProduct.name_en}</p>
+                  </div>
+                  <button type="button" onClick={() => setEditingProduct(null)} aria-label={tx('Close edit product', 'បិទការកែសម្រួលផលិតផល')} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-5 w-5" /></button>
+                </div>
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -2784,9 +2793,8 @@ export default function App() {
                     setEditingProduct(null);
                     triggerToast(tx('Product saved.', 'បានរក្សាទុកផលិតផល។'));
                   }}
-                  className="grid grid-cols-1 gap-3 rounded-2xl border border-green-200 bg-green-50/50 p-4 sm:grid-cols-2"
+                  className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto overscroll-contain p-5 sm:grid-cols-2 sm:p-7"
                 >
-                  <h3 className="text-sm font-extrabold text-[#202124] sm:col-span-2">{tx('Product details', 'ព័ត៌មានលម្អិតអំពីផលិតផល')}</h3>
                   <input aria-label="Product code" placeholder={tx('Product code (optional)', 'កូដផលិតផល (ស្រេចចិត្ត)')} value={editingProduct.code ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, code: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input required aria-label="Product name in English" placeholder={tx('Product name (English)', 'ឈ្មោះផលិតផល (អង់គ្លេស)')} value={editingProduct.name_en} onChange={(event) => setEditingProduct({ ...editingProduct, name_en: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
                   <input aria-label="Product name in Khmer" placeholder={tx('Product name (Khmer)', 'ឈ្មោះផលិតផល (ខ្មែរ)')} value={editingProduct.name_kh} onChange={(event) => setEditingProduct({ ...editingProduct, name_kh: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs" />
@@ -2808,11 +2816,13 @@ export default function App() {
                   <ProductDescriptionEditor value={editingProduct.specs} onChange={(specs) => setEditingProduct({ ...editingProduct, specs })} label={tx('Product description (English)', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
                   <ProductDescriptionEditor value={editingProduct.specs_kh || ''} onChange={(specs_kh) => setEditingProduct({ ...editingProduct, specs_kh })} label={tx('Product description in Khmer', 'ការពិពណ៌នាផលិតផល (ខ្មែរ)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
                   <ImageUpload label={tx('Product picture', 'រូបភាពផលិតផល')} lang={lang} image={editingProduct.image} onChange={(image) => setEditingProduct({ ...editingProduct, image })} crop aspectRatio={4 / 3} />
-                  <div className="flex gap-2 sm:col-span-2">
+                  <div className="sticky bottom-0 flex gap-2 border-t border-slate-200 bg-white/95 py-3 backdrop-blur sm:col-span-2">
                     <button type="submit" className="rounded-xl bg-green-500 px-4 py-2.5 text-xs font-extrabold text-slate-950">{tx('Save Product', 'រក្សាទុកផលិតផល')}</button>
                     <button type="button" onClick={() => setEditingProduct(null)} className="rounded-xl bg-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">{tx('Cancel', 'បោះបង់')}</button>
                   </div>
                 </form>
+                </div>
+                </Modal>
               )}
             </div>
             </>}
