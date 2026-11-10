@@ -202,7 +202,7 @@ function normalizeProductDescriptionInput(text: string): string {
   return text.replace(/\s*•\s*/gu, '\n').replace(/^\s*[-*]\s*/gmu, '');
 }
 
-const allowedDescriptionTags = new Set(['P', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U', 'BR', 'H2', 'H3']);
+const allowedDescriptionTags = new Set(['P', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U', 'BR', 'UL', 'OL', 'LI', 'H2', 'H3']);
 
 function sanitizeDescriptionHtml(html: string): string {
   const document = new DOMParser().parseFromString(html, 'text/html');
@@ -216,6 +216,8 @@ function sanitizeDescriptionHtml(html: string): string {
     if (!allowedDescriptionTags.has(element.tagName)) return children;
     const tag = element.tagName.toLowerCase();
     if (tag === 'br') return '<br />';
+    if (tag === 'div') return /<(?:p|ul|ol)\b/iu.test(children) ? children : `<p>${children}</p>`;
+    if (tag === 'h2' || tag === 'h3') return `<p>${children}</p>`;
     return `<${tag}>${children}</${tag}>`;
   };
   return Array.from(document.body.childNodes).map(serialize).join('');
@@ -248,6 +250,22 @@ function ProductDescriptionEditor({ value, onChange, label, placeholder }: {
     onChange(sanitizeDescriptionHtml(editor.innerHTML));
   };
 
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const clipboardHtml = event.clipboardData.getData('text/html');
+    const clipboardText = event.clipboardData.getData('text/plain');
+    const cleanHtml = clipboardHtml
+      ? sanitizeDescriptionHtml(clipboardHtml)
+      : clipboardText.split(/\r?\n/u).map((line) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '<br />'}</p>`).join('');
+
+    editor.focus();
+    document.execCommand('insertHTML', false, cleanHtml || '<p><br /></p>');
+    onChange(sanitizeDescriptionHtml(editor.innerHTML));
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-300 bg-white sm:col-span-2">
       <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 p-1.5" role="toolbar" aria-label={`${label} formatting`}>
@@ -267,7 +285,8 @@ function ProductDescriptionEditor({ value, onChange, label, placeholder }: {
         aria-multiline="true"
         data-placeholder={placeholder}
         onInput={(event) => onChange(sanitizeDescriptionHtml(event.currentTarget.innerHTML))}
-        className="min-h-24 whitespace-pre-wrap p-3 text-xs leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 [&_h3]:my-1 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1"
+        onPaste={handlePaste}
+        className="min-h-24 whitespace-pre-wrap p-3 text-xs leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 [&_h3]:my-1 [&_h3]:text-xs [&_h3]:font-bold [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5"
       />
     </div>
   );
@@ -313,12 +332,20 @@ function repairKhmerMojibake(value: string): string {
 export default function App() {
   const standaloneCatalog = new URLSearchParams(window.location.search).get('tool') === 'catalog-studio';
   const staffCatalogView = new URLSearchParams(window.location.search).get('catalog') === 'staff';
+  const availableViews = ['home', 'about', 'brands', 'products', 'distribution', 'partner', 'seller', 'news', 'contact', 'admin'];
   const [lang, setLang] = useState<'EN' | 'KH'>('EN');
   const [posterSlideIndex, setPosterSlideIndex] = useState(0);
   const [languageLoading, setLanguageLoading] = useState(false);
   const [currentView, setCurrentView] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('admin') === '1' || params.get('tool') === 'catalog-studio' || params.get('catalog') === 'staff' ? 'admin' : 'home';
+    if (params.get('admin') === '1' || params.get('tool') === 'catalog-studio' || params.get('catalog') === 'staff') return 'admin';
+    const hashView = window.location.hash.slice(1);
+    if (availableViews.includes(hashView) && hashView !== 'admin') return hashView;
+    try {
+      const savedView = window.localStorage.getItem('vistalab.currentView');
+      if (savedView && availableViews.includes(savedView) && savedView !== 'admin') return savedView;
+    } catch { /* Browser storage may be unavailable. */ }
+    return 'home';
   }); // home, about, brands, products, distribution, partner, seller, news, contact, admin
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [adminAuthReady, setAdminAuthReady] = useState(false);
@@ -343,6 +370,28 @@ export default function App() {
   const productsPerPage = 16;
   const [selectedHubId, setSelectedHubId] = useState(distributionHubs[0].id);
   const languageLoadingTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    const syncViewFromHistory = () => {
+      const view = window.location.hash.slice(1);
+      if (availableViews.includes(view) && view !== 'admin') setCurrentView(view);
+    };
+    window.addEventListener('popstate', syncViewFromHistory);
+    window.addEventListener('hashchange', syncViewFromHistory);
+    return () => {
+      window.removeEventListener('popstate', syncViewFromHistory);
+      window.removeEventListener('hashchange', syncViewFromHistory);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentView === 'admin') return;
+    try { window.localStorage.setItem('vistalab.currentView', currentView); } catch { /* Browser storage may be unavailable. */ }
+    const url = new URL(window.location.href);
+    if (url.hash === `#${currentView}`) return;
+    url.hash = currentView;
+    window.history.pushState({ view: currentView }, '', url);
+  }, [currentView]);
   const changeLanguage = (nextLang: 'EN' | 'KH') => {
     if (nextLang === lang || languageLoading) return;
     if (languageLoadingTimer.current !== null) window.clearTimeout(languageLoadingTimer.current);
@@ -2805,8 +2854,29 @@ export default function App() {
                     <span title={selectedProduct.origin} className="flex h-9 min-w-14 items-center justify-center rounded-xl border border-slate-200 bg-white px-1.5 shadow-sm">
                       <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
                     </span>
-                    <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(getProductCategory(selectedProduct))}</span>
+                    {brands.some((brand) => productMatchesBrand(selectedProduct, brand.name)) ? <button
+                      type="button"
+                      onClick={() => {
+                        const brand = brands.find((candidate) => productMatchesBrand(selectedProduct, candidate.name));
+                        if (!brand) return;
+                        setSelectedProduct(null);
+                        setSelectedBrand(brand);
+                      }}
+                      className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800 transition hover:bg-green-100 hover:text-green-950 focus:outline-none focus:ring-2 focus:ring-green-600"
+                    >{selectedProduct.brand}</button> : <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedProduct(null);
+                        setSelectedBrand(null);
+                        setActiveBrandFilter(null);
+                        setActiveCategory(getProductCategory(selectedProduct));
+                        setSearchQuery('');
+                        setProductPage(1);
+                        setCurrentView('products');
+                      }}
+                      className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-green-600"
+                    >{localizedCategory(getProductCategory(selectedProduct))}</button>
                   </div>
                   <h3 className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">{localizedProductName(selectedProduct)}</h3>
                   <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
