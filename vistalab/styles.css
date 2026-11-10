@@ -448,6 +448,11 @@ main [class~="text-[11px]"] {
     max-width: calc(100vw - 4rem) !important;
   }
 
+  .site-hero-friendly .poster-copy .mobile-hero-actions > button {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .site-hero-friendly .poster-copy > :first-child {
     width: fit-content;
     max-width: calc(100vw - 4rem) !important;

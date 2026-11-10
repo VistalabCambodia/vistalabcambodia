@@ -364,6 +364,7 @@ export default function App() {
   const [dataHealthError, setDataHealthError] = useState('');
   const [backupLoading, setBackupLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeBrandFilter, setActiveBrandFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1231,7 +1232,7 @@ export default function App() {
           {/* Mobile menu trigger */}
           <div className="ml-2 flex shrink-0 items-center space-x-1 lg:hidden sm:space-x-2">
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (mobileMenuOpen) setMobileMoreOpen(false); }}
               className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg focus:outline-none"
               aria-label={mobileMenuOpen ? tx('Close navigation menu', 'បិទម៉ឺនុយ') : tx('Open navigation menu', 'បើកម៉ឺនុយ')}
               aria-expanded={mobileMenuOpen}
@@ -1250,18 +1251,14 @@ export default function App() {
           >
             <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-100">
               {[
-                { id: 'home', label: t.navHome, icon: Home },
-                { id: 'about', label: tx('About & Distribution', 'អំពីយើង និងបណ្តាញចែកចាយ'), icon: Info },
-                { id: 'brands', label: t.navBrands, icon: Tags },
                 { id: 'products', label: t.navProducts, icon: Package },
-                { id: 'partner', label: t.navPartner, icon: Handshake },
-                { id: 'seller', label: t.navSeller, icon: Store },
-                { id: 'news', label: t.navNews, icon: Newspaper },
+                { id: 'brands', label: t.navBrands, icon: Tags },
+                { id: 'about', label: tx('About & Distribution', 'អំពីយើង និងបណ្តាញចែកចាយ'), icon: Info },
                 { id: 'contact', label: t.navContact, icon: Phone }
               ].map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); }}
+                  onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); setMobileMenuOpen(false); setMobileMoreOpen(false); }}
                   className={`flex min-h-11 min-w-0 items-center gap-2 text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${currentView === link.id ? 'bg-[#267A3B] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
                   <link.icon className={`h-4 w-4 shrink-0 ${currentView === link.id ? 'text-white' : 'text-slate-400'}`} aria-hidden="true" />
@@ -1269,6 +1266,17 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button type="button" aria-expanded={mobileMoreOpen} onClick={() => setMobileMoreOpen((open) => !open)} className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <span>{mobileMoreOpen ? tx('Fewer pages', 'បិទទំព័របន្ថែម') : tx('More pages', 'ទំព័របន្ថែម')}</span><ChevronDown className={`h-4 w-4 transition-transform ${mobileMoreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {mobileMoreOpen && <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'home', label: t.navHome, icon: Home },
+                { id: 'partner', label: t.navPartner, icon: Handshake },
+                { id: 'seller', label: t.navSeller, icon: Store },
+                { id: 'news', label: t.navNews, icon: Newspaper }
+              ].map((link) => <button key={link.id} type="button" onClick={() => { setCurrentView(link.id); setMobileMenuOpen(false); setMobileMoreOpen(false); }} className="flex min-h-10 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-green-50"><link.icon className="h-4 w-4 text-slate-500" aria-hidden="true" />{link.label}</button>)}
+            </div>}
             <div className="pt-2 flex flex-col space-y-2">
               <button
                 onClick={() => openInquiry('', '', 'General')}
@@ -1299,36 +1307,44 @@ export default function App() {
       <main key={currentView} className="page-transition min-w-0 flex-grow">
         {/* VIEW: HOMEPAGE */}
         {currentView === 'home' && (
-          <div className="space-y-6 pb-16 sm:space-y-16 lg:space-y-24">
+          <div className="space-y-5 pb-12 sm:space-y-16 sm:pb-16 lg:space-y-24">
             {/* HERO POSTER */}
             <section className="site-hero-friendly overflow-hidden px-4 py-4 sm:px-8 sm:py-8">
               <div style={{ width: 'min(100%, calc(100vw - 2rem))', minWidth: 0 }} className="relative mx-auto min-h-0 w-full min-w-0 max-w-7xl overflow-hidden rounded-[2rem] bg-green-50 shadow-xl sm:min-h-[460px]">
                 <img
                   src={settings.heroImage || `${import.meta.env.BASE_URL}images/hero-warehouse-banner.jpg`}
                   alt="VistaLab Cambodia distribution warehouse"
-                  className="poster-image absolute inset-x-0 top-0 h-[220px] w-full object-cover sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[62%]"
+                  className="poster-image absolute inset-x-0 top-0 h-[180px] w-full object-cover sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[62%]"
                 />
-                <div aria-hidden="true" className="absolute inset-x-0 top-[125px] h-[110px] bg-gradient-to-b from-transparent to-green-50 sm:inset-y-0 sm:left-1/3 sm:right-0 sm:top-0 sm:h-auto sm:bg-gradient-to-r sm:from-green-50 sm:via-green-50/80 sm:to-transparent" />
-                <div style={{ width: '100%', minWidth: 0 }} className="poster-copy relative z-10 flex min-h-0 w-full min-w-0 max-w-2xl flex-col justify-end px-4 pb-6 pt-[232px] sm:min-h-[460px] sm:justify-center sm:px-10 sm:py-12 lg:px-14">
+                <div aria-hidden="true" className="absolute inset-x-0 top-[82px] h-[104px] bg-gradient-to-b from-transparent to-green-50 sm:inset-y-0 sm:left-1/3 sm:right-0 sm:top-0 sm:h-auto sm:bg-gradient-to-r sm:from-green-50 sm:via-green-50/80 sm:to-transparent" />
+                <div style={{ width: '100%', minWidth: 0 }} className="poster-copy relative z-10 flex min-h-0 w-full min-w-0 max-w-2xl flex-col justify-end px-4 pb-5 pt-[190px] sm:min-h-[460px] sm:justify-center sm:px-10 sm:py-12 lg:px-14">
                   <div className="mb-3 inline-flex w-fit max-w-full items-center gap-2 whitespace-normal rounded-full border border-green-200 bg-white/90 px-3 py-1.5 text-xs font-bold text-green-800 shadow-sm sm:text-sm">
                     <Sparkles className="h-4 w-4 text-green-600" />
                     {lang === 'KH' ? settings.heroSubtitle_kh : settings.heroSubtitle_en}
                   </div>
                   <h1 style={{ width: '100%', overflowWrap: 'anywhere' }} className="max-w-full break-words text-3xl font-black leading-tight tracking-tight text-slate-950 sm:max-w-xl sm:text-5xl lg:text-6xl">{lang === 'KH' ? settings.heroTitle_kh : settings.heroTitle_en}</h1>
                   <p style={{ width: '100%', overflowWrap: 'anywhere' }} className="mt-3 max-w-full break-words text-sm leading-relaxed text-slate-700 sm:max-w-lg sm:text-base">{lang === 'KH' ? settings.heroDescription_kh : settings.heroDescription_en}</p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mobile-hero-actions mt-4 grid grid-cols-2 gap-2 sm:hidden">
+                    <p className="col-span-2 text-xs font-bold uppercase tracking-wide text-slate-500">{tx('Start here', 'ចាប់ផ្តើមនៅទីនេះ')}</p>
+                    <button type="button" onClick={() => { setActiveBrandFilter(null); setActiveCategory('All'); setSearchQuery(''); setProductPage(1); setCurrentView('products'); }} className="col-span-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-sm font-extrabold text-white shadow-md transition hover:bg-green-800">
+                      <Package className="h-4 w-4" aria-hidden="true" />{tx('Browse Products', 'មើលផលិតផល')}<ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button type="button" onClick={() => setCurrentView('brands')} className="min-h-11 rounded-xl border border-green-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-green-50">{tx('Explore Brands', 'មើលម៉ាក')}</button>
+                    <button type="button" onClick={() => openInquiry('', '', 'General')} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-50">{tx('Contact our team', 'ទាក់ទងក្រុមការងារ')}</button>
+                  </div>
+                  <div className="mt-5 hidden flex-wrap gap-3 sm:flex">
                     <button onClick={() => setCurrentView('brands')} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-5 py-3 font-bold text-white shadow-md transition hover:bg-green-800 sm:w-auto">
                       {t.exploreBrands}<ArrowRight className="h-5 w-5" />
                     </button>
                     <button onClick={() => setCurrentView('partner')} className="w-full rounded-xl border border-green-200 bg-white px-5 py-3 font-bold text-slate-800 transition hover:bg-green-50 sm:w-auto">{t.partnerWithUs}</button>
                   </div>
-                  <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-700 sm:text-sm">
+                  <div className="mt-6 hidden flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-700 sm:flex sm:text-sm">
                     <span>✓ {tx('12+ Active Brands', 'ម៉ាកផលិតផលជាង ១២')}</span>
                     <span>✓ {tx('Quality Imports', 'ផលិតផលនាំចូលមានគុណភាព')}</span>
                     <span>✓ {tx('Nationwide Distribution', 'ចែកចាយទូទាំងប្រទេស')}</span>
                   </div>
                 </div>
-                <div className="poster-trust-badge absolute right-3 top-[154px] max-w-[calc(100%-1.5rem)] rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-center shadow-lg sm:right-8 sm:top-8 sm:px-4 sm:py-3">
+                <div className="poster-trust-badge absolute right-3 top-3 max-w-[calc(100%-1.5rem)] rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-center shadow-lg sm:right-8 sm:top-8 sm:px-4 sm:py-3">
                   <div className="text-2xl font-black leading-none text-green-800">{settings.heroTrustedBrands}</div>
                   <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">{tx('Trusted Brands', 'ម៉ាកដែលទុកចិត្ត')}</div>
                 </div>
@@ -1368,7 +1384,7 @@ export default function App() {
             </section>
 
             {/* PRODUCT CATEGORIES FILTER */}
-            <section className="bg-slate-100 py-10 sm:py-16 px-4 sm:px-8 border-y border-slate-200">
+            <section className="bg-slate-100 py-7 sm:py-16 px-4 sm:px-8 border-y border-slate-200">
               <div className="max-w-7xl mx-auto space-y-5 sm:space-y-8">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                   <div>
