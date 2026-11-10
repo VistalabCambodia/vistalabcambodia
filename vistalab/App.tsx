@@ -3163,8 +3163,8 @@ export default function App() {
 
       {}
       <footer className="site-footer-friendly bg-green-50 text-slate-700 text-xs border-t border-green-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-7 sm:py-12 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-7 sm:gap-8">
-          <div className="col-span-2 space-y-3 md:col-span-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-5 sm:py-12 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-5 sm:gap-8">
+          <div className="col-span-2 space-y-2 sm:space-y-3 md:col-span-1">
             <div className="flex items-center space-x-2 text-white font-extrabold text-lg">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-green-100 bg-white shadow-sm"><BrandMark className="h-7 w-7" /></div>
               <span>VISTALAB CAMBODIA</span>
@@ -3173,8 +3173,8 @@ export default function App() {
           </div>
 
           <div className="min-w-0">
-            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.quickLinks}</h4>
-            <ul className="space-y-2 text-slate-400 font-medium">
+            <h4 className="text-white font-bold mb-2 sm:mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.quickLinks}</h4>
+            <ul className="space-y-1.5 sm:space-y-2 text-slate-400 font-medium">
               <li><button onClick={() => setCurrentView('about')} className="hover:text-white">{tx('About & Distribution', 'អំពីយើង និងបណ្តាញចែកចាយ')}</button></li>
               <li><button onClick={() => setCurrentView('brands')} className="hover:text-white">{t.navBrands}</button></li>
               <li><button onClick={() => setCurrentView('products')} className="hover:text-white">{t.navProducts}</button></li>
@@ -3182,8 +3182,8 @@ export default function App() {
           </div>
 
           <div className="min-w-0">
-            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{tx('Commercial', 'កិច្ចការពាណិជ្ជកម្ម')}</h4>
-            <ul className="space-y-2 text-slate-400 font-medium">
+            <h4 className="text-white font-bold mb-2 sm:mb-3 uppercase tracking-wider text-[11px] text-green-400">{tx('Commercial', 'កិច្ចការពាណិជ្ជកម្ម')}</h4>
+            <ul className="space-y-1.5 sm:space-y-2 text-slate-400 font-medium">
               <li><button onClick={() => setCurrentView('partner')} className="hover:text-white">{t.navPartner}</button></li>
               <li><button onClick={() => setCurrentView('seller')} className="hover:text-white">{t.navSeller}</button></li>
               <li><button onClick={() => setCurrentView('news')} className="hover:text-white">{t.navNews}</button></li>
@@ -3191,17 +3191,19 @@ export default function App() {
           </div>
 
           <div className="col-span-2 min-w-0 md:col-span-1">
-            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.contactInfo}</h4>
+            <h4 className="text-white font-bold mb-2 sm:mb-3 uppercase tracking-wider text-[11px] text-green-400">{t.contactInfo}</h4>
+            <div className="space-y-0.5 sm:space-y-1">
             <p className="text-slate-400 leading-relaxed">{tx('Hotline:', 'ទូរសព្ទ៖')} {settings.phone1}</p>
             <p className="break-all text-slate-400">{tx('Email:', 'អ៊ីមែល៖')} {settings.email}</p>
             <p className="break-all text-slate-400">Telegram: {settings.telegram}</p>
             <p className="mt-1"><a href={settings.facebook} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-white underline underline-offset-2">{tx('Facebook:', 'Facebook៖')} vistalab</a></p>
             <p className="text-slate-400 mt-2">{lang === 'KH' ? settings.address_kh : settings.address_en}</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-green-100/70 px-4 py-4 pb-16 text-center text-slate-600 border-t border-green-100 sm:px-8 sm:pb-4">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="bg-green-100/70 px-4 py-3 pb-16 text-center text-slate-600 border-t border-green-100 sm:px-8 sm:py-4 sm:pb-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3">
             <p>© 2026 VistaLab Cambodia Co., Ltd. {t.rightsReserved}</p>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] sm:justify-end">
               <button onClick={() => setCurrentView('admin')} className="text-slate-500 transition hover:text-green-800">Admin sign in</button>
