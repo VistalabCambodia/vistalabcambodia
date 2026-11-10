@@ -120,6 +120,17 @@ function normalizeBrandName(name: string): string {
   return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLocaleLowerCase();
 }
 
+function productMatchesBrand(product: Product, brandName: string): boolean {
+  const selectedBrand = normalizeBrandName(brandName);
+  const productBrand = normalizeBrandName(product.brand);
+  const productTitle = normalizeBrandName(`${product.name_en} ${product.name_kh}`);
+  if (!selectedBrand) return false;
+  if (productBrand === selectedBrand || productTitle.includes(selectedBrand)) return true;
+  // Support a parent brand with a product-line suffix (for example, "Brand X" / "Brand X Plus").
+  return Math.min(selectedBrand.length, productBrand.length) >= 3
+    && (productBrand.startsWith(selectedBrand) || selectedBrand.startsWith(productBrand));
+}
+
 function getSafeBrandWebsite(website?: string): string | null {
   if (!website?.trim()) return null;
   try {
@@ -328,6 +339,8 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeBrandFilter, setActiveBrandFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const productsPerPage = 16;
   const [selectedHubId, setSelectedHubId] = useState(distributionHubs[0].id);
   const languageLoadingTimer = useRef<number | null>(null);
   const changeLanguage = (nextLang: 'EN' | 'KH') => {
@@ -724,6 +737,14 @@ export default function App() {
     'Food & Confectionery': t.catFood
   };
   const localizedCategory = (category: string) => categoryLabels[category as typeof productCategories[number]] ?? category;
+  const getProductCategory = (product: Product) => {
+    const text = `${product.name_en} ${product.name_kh} ${product.specs}`.toLowerCase();
+    if (/snack|wafer|confection|chocolate|candy|drink|beverage|noodle|biscuit|cookie|cracker|juice/.test(text)) return 'Food & Confectionery';
+    if (/dishwash|dish wash|floor cleaner|surface cleaner|laundry|detergent|toilet cleaner|disinfect|household/.test(text)) return 'Household Care';
+    if (/baby|infant|nappy|diaper|baby wipes|bottle cleanser/.test(text)) return 'Baby Care';
+    if (/shower|body wash|body scrub|body lotion|goat milk|body cream/.test(text)) return 'Beauty & Body Care';
+    return product.category;
+  };
   const localizedProductName = (product: Product) => lang === 'KH'
     ? product.name_kh && product.name_kh !== product.name_en ? product.name_kh : 'មិនទាន់មានឈ្មោះផលិតផលជាភាសាខ្មែរ។'
     : product.name_en;
@@ -974,6 +995,25 @@ export default function App() {
       </main>
     );
   }
+
+  const filteredProducts = products
+    .filter((product) => (!activeBrandFilter || productMatchesBrand(product, activeBrandFilter)))
+    .filter((product) => (activeBrandFilter || activeCategory === 'All' || getProductCategory(product) === activeCategory))
+    .filter((product) => {
+      const query = activeBrandFilter ? '' : searchQuery.trim().toLowerCase();
+      return !query || product.name_en.toLowerCase().includes(query) || product.name_kh.toLowerCase().includes(query)
+        || product.brand.toLowerCase().includes(query) || (product.code ?? '').toLowerCase().includes(query) || product.id.toLowerCase().includes(query);
+    })
+    .sort((a, b) => {
+      const codeA = a.code ?? '';
+      const codeB = b.code ?? '';
+      const groupA = codeA.match(/^\d{3}/)?.[0] ?? '';
+      const groupB = codeB.match(/^\d{3}/)?.[0] ?? '';
+      return groupA.localeCompare(groupB, undefined, { numeric: true }) || codeA.localeCompare(codeB, undefined, { numeric: true });
+    });
+  const productPageCount = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+  const currentProductPage = Math.min(productPage, productPageCount);
+  const paginatedProducts = filteredProducts.slice((currentProductPage - 1) * productsPerPage, currentProductPage * productsPerPage);
 
   return (
     <div
@@ -1241,7 +1281,7 @@ export default function App() {
                     <p className="text-slate-600 text-sm mt-1">{t.catSub}</p>
                   </div>
                   <button 
-                    onClick={() => { setActiveBrandFilter(null); setCurrentView('products'); }}
+                    onClick={() => { setActiveBrandFilter(null); setProductPage(1); setCurrentView('products'); }}
                     className="text-green-900 hover:text-green-600 font-bold text-sm flex items-center space-x-1"
                   >
                     <span>{t.viewAllProducts}</span>
@@ -1253,7 +1293,7 @@ export default function App() {
                   {productCategories.map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => setActiveCategory(cat)}
+                      onClick={() => { setActiveCategory(cat); setProductPage(1); }}
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeCategory === cat ? 'bg-[#267A3B] text-white shadow-md' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'}`}
                     >
                       {categoryLabels[cat]}
@@ -1264,7 +1304,7 @@ export default function App() {
                 {/* Filtered Product Grid preview */}
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                   {products
-                    .filter(p => activeCategory === 'All' || p.category === activeCategory)
+                    .filter(p => activeCategory === 'All' || getProductCategory(p) === activeCategory)
                     .slice(0, 4)
                     .map((prod) => (
                       <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group">
@@ -1283,7 +1323,7 @@ export default function App() {
                         </button>
                         <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
                           <div>
-                            <span className="text-[11px] font-bold text-green-600 uppercase tracking-wide">{localizedCategory(prod.category)}</span>
+                            <span className="text-[11px] font-bold text-green-600 uppercase tracking-wide">{localizedCategory(getProductCategory(prod))}</span>
                             <h4 className="text-base font-bold text-slate-900 group-hover:text-green-900 transition-colors line-clamp-2 mt-1">
                               {localizedProductName(prod)}
                             </h4>
@@ -1576,6 +1616,7 @@ export default function App() {
                       onClick={() => {
                         setActiveBrandFilter(b.name);
                         setActiveCategory('All');
+                        setProductPage(1);
                         setSearchQuery('');
                         setCurrentView('products');
                       }}
@@ -1608,7 +1649,7 @@ export default function App() {
                   placeholder={tx('Search products or brands...', 'ស្វែងរកផលិតផល ឬម៉ាកផលិតផល...')}
                   list="product-search-options"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setProductPage(1); }}
                   className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-900"
                 />
                 <datalist id="product-search-options">
@@ -1618,12 +1659,12 @@ export default function App() {
             </div>
 
             {/* Filter Pills */}
-            {activeBrandFilter && <button type="button" onClick={() => setActiveBrandFilter(null)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">{tx('← All products', '← ផលិតផលទាំងអស់')}</button>}
+            {activeBrandFilter && <button type="button" onClick={() => { setActiveBrandFilter(null); setProductPage(1); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">{tx('← All products', '← ផលិតផលទាំងអស់')}</button>}
             {!activeBrandFilter && <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
               {productCategories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => { setActiveCategory(cat); setProductPage(1); }}
                   className={`shrink-0 px-3 py-1.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold ${activeCategory === cat ? 'bg-[#267A3B] text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'}`}
                 >
                   {categoryLabels[cat]}
@@ -1633,27 +1674,7 @@ export default function App() {
 
             {/* Product Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
-              {products
-                .filter(p => (!activeBrandFilter || normalizeBrandName(p.brand) === normalizeBrandName(activeBrandFilter)))
-                .filter(p => (activeBrandFilter || activeCategory === 'All' || p.category === activeCategory))
-                .filter((p) => {
-                  const query = activeBrandFilter ? '' : searchQuery.trim().toLowerCase();
-                  return !query
-                    || p.name_en.toLowerCase().includes(query)
-                    || p.name_kh.toLowerCase().includes(query)
-                    || p.brand.toLowerCase().includes(query)
-                    || (p.code ?? '').toLowerCase().includes(query)
-                    || p.id.toLowerCase().includes(query);
-                })
-                .sort((a, b) => {
-                  const codeA = a.code ?? '';
-                  const codeB = b.code ?? '';
-                  const groupA = codeA.match(/^\d{3}/)?.[0] ?? '';
-                  const groupB = codeB.match(/^\d{3}/)?.[0] ?? '';
-                  return groupA.localeCompare(groupB, undefined, { numeric: true })
-                    || codeA.localeCompare(codeB, undefined, { numeric: true });
-                })
-                .map((prod, index) => (
+              {paginatedProducts.map((prod, index) => (
                   <ScrollReveal key={prod.id} className="h-full min-w-0" delay={(index % 8) * 45}>
                   <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:rounded-2xl">
                     <button type="button" onClick={() => setSelectedProduct(prod)} aria-label={`View ${prod.name_en} image`} className={`relative flex h-40 w-full flex-col items-center justify-center bg-white p-2 text-center sm:h-48 lg:h-56 ${prod.imageBg}`}>
@@ -1668,7 +1689,7 @@ export default function App() {
                     </button>
                     <div className="min-w-0 p-3 sm:p-5 flex-grow flex flex-col justify-between gap-3 sm:gap-4">
                       <div>
-                        <span className="text-[8px] sm:text-[10px] font-extrabold text-green-600 uppercase line-clamp-1">{localizedCategory(prod.category)}</span>
+                        <span className="text-[8px] sm:text-[10px] font-extrabold text-green-600 uppercase line-clamp-1">{localizedCategory(getProductCategory(prod))}</span>
                         <h3 className="text-xs sm:text-sm font-bold text-slate-900 mt-1 line-clamp-2 break-words">
                           {localizedProductName(prod)}
                         </h3>
@@ -1687,7 +1708,21 @@ export default function App() {
                   </div>
                   </ScrollReveal>
                 ))}
+              {activeBrandFilter && !products.some((product) => productMatchesBrand(product, activeBrandFilter)) && (
+                <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                  <p className="font-bold text-slate-800">{tx(`No products are linked to ${activeBrandFilter} yet.`, `មិនទាន់មានផលិតផលភ្ជាប់ជាមួយ ${activeBrandFilter} ទេ។`)}</p>
+                  <p className="mt-2 text-sm text-slate-600">{tx('In Admin → Products, add a product or edit an existing product and select this brand.', 'នៅ Admin → Products សូមបន្ថែមផលិតផល ឬកែសម្រួលផលិតផលដែលមាន រួចជ្រើសរើសម៉ាកនេះ។')}</p>
+                </div>
+              )}
             </div>
+            {filteredProducts.length > 0 && <nav aria-label={tx('Product pages', 'ទំព័រផលិតផល')} className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-5 sm:flex-row">
+              <p className="text-xs font-medium text-slate-500">{tx(`Showing ${(currentProductPage - 1) * productsPerPage + 1}–${Math.min(currentProductPage * productsPerPage, filteredProducts.length)} of ${filteredProducts.length} products`, `បង្ហាញ ${(currentProductPage - 1) * productsPerPage + 1}–${Math.min(currentProductPage * productsPerPage, filteredProducts.length)} នៃផលិតផល ${filteredProducts.length}`)}</p>
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                <button type="button" disabled={currentProductPage === 1} onClick={() => { setProductPage(currentProductPage - 1); document.querySelector('main')?.scrollIntoView({ behavior: 'smooth' }); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">{tx('Previous', 'មុន')}</button>
+                {Array.from({ length: productPageCount }, (_, index) => index + 1).map((page) => <button key={page} type="button" aria-current={page === currentProductPage ? 'page' : undefined} onClick={() => { setProductPage(page); document.querySelector('main')?.scrollIntoView({ behavior: 'smooth' }); }} className={`h-9 min-w-9 rounded-lg border px-2 text-xs font-bold ${page === currentProductPage ? 'border-green-700 bg-green-700 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}>{page}</button>)}
+                <button type="button" disabled={currentProductPage === productPageCount} onClick={() => { setProductPage(currentProductPage + 1); document.querySelector('main')?.scrollIntoView({ behavior: 'smooth' }); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">{tx('Next', 'បន្ទាប់')}</button>
+              </div>
+            </nav>}
           </div>
         )}
 
@@ -2201,7 +2236,7 @@ export default function App() {
                     <span className="line-clamp-2 min-w-0 flex-1 whitespace-normal text-sm font-bold leading-tight text-slate-800">{brand.name}</span>
                     <button type="button" onClick={() => setEditingBrand({ ...brand, website: brand.website || getDefaultBrandWebsite(brand.name) })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200">{tx('Edit', 'កែសម្រួល')}</button>
                     <button type="button" aria-label={`Delete ${brand.name}`} title={tx('Delete brand', 'លុបម៉ាក')} onClick={async () => {
-                      const linkedCount = products.filter((product) => product.brand === brand.name).length;
+                      const linkedCount = products.filter((product) => productMatchesBrand(product, brand.name)).length;
                       if (!window.confirm(tx(`Delete ${brand.name}? ${linkedCount ? `${linkedCount} linked product(s) will remain without a brand.` : 'This cannot be undone.'}`, `លុប ${brand.name} មែនទេ?`))) return;
                       const nextBrands = brands.filter((item) => item.id !== brand.id);
                       try {
@@ -2213,7 +2248,7 @@ export default function App() {
                           setNews(saved.news);
                           setSettings(saved.settings);
                         } else setBrands(nextBrands);
-                        if (linkedCount) setProducts((current) => current.map((product) => product.brand === brand.name ? { ...product, brand: '' } : product));
+                        if (linkedCount) setProducts((current) => current.map((product) => productMatchesBrand(product, brand.name) ? { ...product, brand: '' } : product));
                         if (editingBrand?.id === brand.id) setEditingBrand(null);
                         triggerToast(tx('Brand deleted.', 'បានលុបម៉ាក។'));
                       } catch (error) {
@@ -2234,9 +2269,10 @@ export default function App() {
                     const nextBrands = brands.some((brand) => brand.id === savedBrand.id)
                       ? brands.map((brand) => brand.id === savedBrand.id ? savedBrand : brand)
                       : [savedBrand, ...brands];
-                    if (previousBrand && previousBrand.name !== savedBrand.name) {
-                      setProducts((current) => current.map((product) => product.brand === previousBrand.name ? { ...product, brand: savedBrand.name } : product));
+                    if (previousBrand && normalizeBrandName(previousBrand.name) !== normalizeBrandName(savedBrand.name)) {
+                      setProducts((current) => current.map((product) => productMatchesBrand(product, previousBrand.name) ? { ...product, brand: savedBrand.name } : product));
                     }
+                    if (!previousBrand || newProductBrand === previousBrand.name) setNewProductBrand(savedBrand.name);
                     if (!supabaseClient) {
                       setBrands(nextBrands);
                       setEditingBrand(null);
@@ -2770,7 +2806,7 @@ export default function App() {
                       <CountryFlag country={selectedProduct.origin} image={brands.find((brand) => brand.name === selectedProduct.brand)?.flagImage} />
                     </span>
                     <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-green-800">{selectedProduct.brand}</span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(selectedProduct.category)}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{localizedCategory(getProductCategory(selectedProduct))}</span>
                   </div>
                   <h3 className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">{localizedProductName(selectedProduct)}</h3>
                   <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
@@ -2838,6 +2874,7 @@ export default function App() {
                   setSelectedBrand(null);
                   setActiveBrandFilter(selectedBrand.name);
                   setActiveCategory('All');
+                  setProductPage(1);
                   setSearchQuery('');
                   setCurrentView('products');
                 }}
