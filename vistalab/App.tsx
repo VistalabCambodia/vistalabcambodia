@@ -1705,11 +1705,11 @@ export default function App() {
             </div>
 
             {/* Brand Directory Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
               {brands.map((b) => (
-                <div key={b.id} className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between">
-                  <div className="space-y-3 p-3 sm:space-y-5 sm:p-6">
-                    <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white p-4 sm:h-40 sm:p-5">
+                <article key={b.id} className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04),0_16px_36px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:border-green-200 hover:shadow-[0_8px_18px_rgba(15,23,42,0.06),0_22px_44px_rgba(15,23,42,0.10)]">
+                  <div className="space-y-4 p-4 sm:space-y-5 sm:p-6">
+                    <div className="relative flex h-36 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:h-40 sm:p-5">
                       {b.image ? (
                         <img src={b.image} alt={`${b.name} logo`} className="h-full w-full object-contain" />
                       ) : (
@@ -1723,18 +1723,19 @@ export default function App() {
                       <h3 className="text-lg font-extrabold leading-snug text-slate-900 group-hover:text-green-900 sm:text-xl">{b.name}</h3>
                       <p className="text-xs font-bold text-green-900 mt-0.5">{localizedCategory(b.category)}</p>
                     </div>
-                    <ProductDescriptionPreview text={localizedBrandDescription(b)} className="text-xs text-slate-600" />
+                    <ProductDescriptionPreview text={localizedBrandDescription(b)} className="text-sm leading-relaxed text-slate-600" />
                   </div>
 
-                  <div className="mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 sm:mx-6 sm:mb-6 sm:pt-4">
+                  <div className="mt-auto flex flex-col gap-2 border-t border-slate-100/90 bg-slate-50/50 p-3 sm:flex-row sm:p-4">
                     <button
                       type="button"
                       onClick={() => setSelectedBrand(b)}
-                      className="text-xs font-bold text-green-800 hover:text-green-950"
+                      className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50 hover:text-green-900"
                     >
                       {tx('View Brand Details', 'មើលព័ត៌មានលម្អិតម៉ាក')}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setActiveBrandFilter(b.name);
                         setActiveCategory('All');
@@ -1742,13 +1743,13 @@ export default function App() {
                         setSearchQuery('');
                         setCurrentView('products');
                       }}
-                      className="text-xs font-bold text-slate-700 hover:text-green-900 flex items-center space-x-1"
+                      className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl bg-green-700 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-green-800"
                     >
                       <span>{tx('View Brand Products', 'មើលផលិតផលរបស់ម៉ាកនេះ')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
