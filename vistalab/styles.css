@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+.khmer-language,
+.khmer-language * {
+  font-family: "Noto Sans Khmer", sans-serif !important;
+  font-synthesis: none;
+}
+
+.khmer-language {
+  line-height: 1.75;
+}
+
 html {
   scroll-behavior: smooth;
 }

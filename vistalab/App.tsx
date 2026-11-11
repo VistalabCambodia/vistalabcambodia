@@ -224,9 +224,12 @@ function sanitizeDescriptionHtml(html: string): string {
 }
 
 function descriptionToEditorHtml(value: string): string {
-  if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(value)) return sanitizeDescriptionHtml(value);
+  if (/<\/?(?:p|div|strong|b|em|i|u|br|h[1-6])\b[^>]*>/iu.test(value)) {
+    const cleanHtml = sanitizeDescriptionHtml(value);
+    return cleanHtml.replace(/<[^>]*>/gu, '').replace(/&nbsp;/gu, ' ').trim() ? cleanHtml : '';
+  }
   const lines = value.split(/[\n•]+/u).map((line) => line.trim().replace(/^[-*]\s*/u, '')).filter(Boolean);
-  return lines.map((line) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`).join('') || '<p><br /></p>';
+  return lines.map((line) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`).join('');
 }
 
 function ProductDescriptionEditor({ value, onChange, label, placeholder }: {
@@ -1101,6 +1104,9 @@ export default function App() {
         || product.brand.toLowerCase().includes(query) || (product.code ?? '').toLowerCase().includes(query) || product.id.toLowerCase().includes(query);
     })
     .sort((a, b) => {
+      const categoryOrder = productCategories.indexOf(getProductCategory(a) as typeof productCategories[number])
+        - productCategories.indexOf(getProductCategory(b) as typeof productCategories[number]);
+      if (activeCategory === 'All' && categoryOrder !== 0) return categoryOrder;
       const codeA = a.code ?? '';
       const codeB = b.code ?? '';
       const groupA = codeA.match(/^\d{3}/)?.[0] ?? '';
@@ -1115,7 +1121,7 @@ export default function App() {
     <div
       lang={lang === 'KH' ? 'km' : 'en'}
       aria-busy={languageLoading}
-      className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-green-900 selection:text-white"
+      className={`min-h-screen w-full min-w-0 bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-green-900 selection:text-white ${lang === 'KH' ? 'khmer-language' : ''}`}
       style={lang === 'KH' ? { fontFamily: "'Noto Sans Khmer', 'Kantumruy Pro', sans-serif", fontSynthesis: 'none' } : undefined}
     >
       {languageLoading && (
@@ -1722,7 +1728,14 @@ export default function App() {
                     <ProductDescriptionPreview text={localizedBrandDescription(b)} className="text-xs text-slate-600" />
                   </div>
 
-                  <div className="mx-3 mb-3 flex items-center border-t border-slate-100 pt-3 sm:mx-6 sm:mb-6 sm:pt-4">
+                  <div className="mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 sm:mx-6 sm:mb-6 sm:pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBrand(b)}
+                      className="text-xs font-bold text-green-800 hover:text-green-950"
+                    >
+                      {tx('View Brand Details', 'មើលព័ត៌មានលម្អិតម៉ាក')}
+                    </button>
                     <button
                       onClick={() => {
                         setActiveBrandFilter(b.name);
@@ -3066,13 +3079,17 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-2xl font-extrabold text-slate-900">{selectedBrand.name}</h3>
-                <p className="text-xs font-bold text-green-600">{tx('Imported from', 'នាំចូលពី')} {selectedBrand.origin === 'Malaysia' && lang === 'KH' ? 'ម៉ាឡេស៊ី' : selectedBrand.origin}</p>
+                <p className="text-xs font-bold text-green-600">{localizedCategory(selectedBrand.category)} · {tx('Imported from', 'នាំចូលពី')} {selectedBrand.origin === 'Malaysia' && lang === 'KH' ? 'ម៉ាឡេស៊ី' : selectedBrand.origin}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-slate-100 bg-white px-1 py-1 text-slate-700">
               <ProductDescription text={localizedBrandDescription(selectedBrand)} className="px-3 py-2 text-sm leading-6 sm:px-4" />
             </div>
+
+            <p className="text-xs font-semibold text-slate-500">
+              {tx(`${products.filter((product) => productMatchesBrand(product, selectedBrand.name)).length} products in this brand`, `${products.filter((product) => productMatchesBrand(product, selectedBrand.name)).length} ផលិតផលក្នុងម៉ាកនេះ`)}
+            </p>
 
             <div className="border-t border-slate-100 pt-4 flex flex-col gap-2 sm:flex-row">
               {getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name)) && <a href={getSafeBrandWebsite(selectedBrand.website || getDefaultBrandWebsite(selectedBrand.name))!} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green-200 bg-white py-3 text-xs font-bold text-green-800 hover:bg-green-50 sm:flex-1"><ExternalLink className="h-4 w-4" />{tx('Official Website', 'គេហទំព័រផ្លូវការ')}</a>}
