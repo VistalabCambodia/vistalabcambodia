@@ -12,6 +12,12 @@
   line-height: 1.75;
 }
 
+html:lang(km) body,
+html:lang(km) body * {
+  font-family: "Noto Sans Khmer", sans-serif !important;
+  font-synthesis: none;
+}
+
 html {
   scroll-behavior: smooth;
 }

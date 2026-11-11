@@ -376,6 +376,12 @@ export default function App() {
   const languageLoadingTimer = useRef<number | null>(null);
 
   useEffect(() => {
+    const previousLanguage = document.documentElement.lang;
+    document.documentElement.lang = lang === 'KH' ? 'km' : 'en';
+    return () => { document.documentElement.lang = previousLanguage; };
+  }, [lang]);
+
+  useEffect(() => {
     const syncViewFromHistory = () => {
       const view = window.location.hash.slice(1);
       if (availableViews.includes(view) && view !== 'admin') setCurrentView(view);
