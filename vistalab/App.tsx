@@ -286,7 +286,7 @@ function ProductDescriptionEditor({ value, onChange, label, placeholder }: {
         data-placeholder={placeholder}
         onInput={(event) => onChange(sanitizeDescriptionHtml(event.currentTarget.innerHTML))}
         onPaste={handlePaste}
-        className="min-h-24 whitespace-pre-wrap p-3 text-xs leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 [&_h3]:my-1 [&_h3]:text-xs [&_h3]:font-bold [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5"
+        className="min-h-24 whitespace-pre-wrap p-3 text-xs leading-relaxed text-slate-900 outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 [&_h3]:my-1 [&_h3]:text-xs [&_h3]:font-bold [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5"
       />
     </div>
   );
@@ -2314,8 +2314,8 @@ export default function App() {
                 <label className="text-xs font-bold text-slate-700">{tx('Heading (Khmer)', 'ចំណងជើង (ខ្មែរ)')}<input value={settings.aboutTitle_kh} onChange={(event) => setSettings({ ...settings, aboutTitle_kh: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" /></label>
                 <label className="text-xs font-bold text-slate-700">{tx('Description (English)', 'សេចក្តីពិពណ៌នា (អង់គ្លេស)')}<textarea rows={3} value={settings.aboutDescription_en} onChange={(event) => setSettings({ ...settings, aboutDescription_en: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" /></label>
                 <label className="text-xs font-bold text-slate-700">{tx('Description (Khmer)', 'សេចក្តីពិពណ៌នា (ខ្មែរ)')}<textarea rows={3} value={settings.aboutDescription_kh} onChange={(event) => setSettings({ ...settings, aboutDescription_kh: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-xs font-normal" /></label>
-                <ImageUpload label={tx('About page banner image', 'រូបភាពបដាទំព័រអំពីយើង')} lang={lang} image={settings.aboutHeroImage} onChange={(aboutHeroImage) => setSettings({ ...settings, aboutHeroImage })} />
-                <ImageUpload label={tx('Distribution page banner image', 'រូបភាពបដាទំព័រចែកចាយ')} lang={lang} image={settings.distributionHeroImage} onChange={(distributionHeroImage) => setSettings({ ...settings, distributionHeroImage })} />
+                <ImageUpload label={tx('About page banner image', 'រូបភាពបដាទំព័រអំពីយើង')} lang={lang} image={settings.aboutHeroImage} onChange={(aboutHeroImage) => setSettings({ ...settings, aboutHeroImage })} highQuality />
+                <ImageUpload label={tx('Distribution page banner image', 'រូបភាពបដាទំព័រចែកចាយ')} lang={lang} image={settings.distributionHeroImage} onChange={(distributionHeroImage) => setSettings({ ...settings, distributionHeroImage })} highQuality />
                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-xs font-bold text-slate-700 sm:col-span-2"><input type="checkbox" checked={settings.distributionHeroAnimated} onChange={(event) => setSettings({ ...settings, distributionHeroAnimated: event.target.checked })} className="h-4 w-4 accent-green-500" />{tx('Animate the Distribution banner', 'បើកចលនាសម្រាប់បដាចែកចាយ')}</label>
                 <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-xs font-bold text-slate-700 sm:col-span-2"><input type="checkbox" checked={settings.aboutHeroAnimated} onChange={(event) => setSettings({ ...settings, aboutHeroAnimated: event.target.checked })} className="h-4 w-4 accent-green-500" />{tx('Animate the banner image', 'បើកចលនាសម្រាប់រូបភាពបដា')}</label>
               </div>
@@ -2938,7 +2938,7 @@ export default function App() {
                   </div>
                   <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
                     {tx('Pack size / packaging', 'ទំហំ / ការវេចខ្ចប់')}
-                    <input aria-label="Pack size / packaging" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} value={editingProduct.sizes ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs font-normal" />
+                    <input aria-label="Pack size / packaging" placeholder={tx('e.g. 12 x 750ml', 'ឧ. 12 x 750ml')} value={editingProduct.sizes ?? ''} onChange={(event) => setEditingProduct({ ...editingProduct, sizes: event.target.value })} className="rounded-xl border border-slate-300 p-2.5 text-xs font-normal text-slate-900" />
                   </label>
                   <ProductDescriptionEditor value={editingProduct.specs} onChange={(specs) => setEditingProduct({ ...editingProduct, specs })} label={tx('Product description (English)', 'ការពិពណ៌នាផលិតផល (អង់គ្លេស)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
                   <ProductDescriptionEditor value={editingProduct.specs_kh || ''} onChange={(specs_kh) => setEditingProduct({ ...editingProduct, specs_kh })} label={tx('Product description in Khmer', 'ការពិពណ៌នាផលិតផល (ខ្មែរ)')} placeholder={tx('Write product details…', 'សរសេរព័ត៌មានលម្អិតអំពីផលិតផល…')} />
