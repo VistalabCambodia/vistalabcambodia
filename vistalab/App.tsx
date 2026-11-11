@@ -13,6 +13,7 @@ import {
   initialInquiries,
   initialNews,
   initialProducts,
+  suppliedProducts,
   productCategories,
   type Brand,
   type Inquiry,
@@ -151,6 +152,28 @@ function normalizeKnownBrandDescription(brand: Brand): Brand {
     description: 'Malaysian snack brand: MyChef’s aims to “Make Life Tasty.”\nPotato crisps: classic and bold flavors.\nBakery treats: cakes and pastries in several varieties.\nSnack bites and crackers: tasty options for sharing and everyday enjoyment.',
     description_kh: 'ម៉ាកអាហារសម្រន់ម៉ាឡេស៊ី៖ MyChef’s មានបំណងធ្វើឱ្យជីវិតកាន់តែឆ្ងាញ់។\nដំឡូងបន្ទះ៖ មានរសជាតិបែបបុរាណ និងរសជាតិចម្រុះ។\nនំដុត៖ មាននំខេក និងនំជាច្រើនប្រភេទ។\nអាហារសម្រន់ និងនំកែកឃឺ៖ សម្រាប់ញ៉ាំរាល់ថ្ងៃ និងចែករំលែក។'
   };
+}
+
+function mergeSuppliedBrands(existing: Brand[]): Brand[] {
+  const merged = [...existing];
+  for (const supplied of initialBrands.filter((brand) => brand.id === 'b13' || brand.id === 'b14') as Brand[]) {
+    const index = merged.findIndex((brand) => normalizeBrandName(brand.name) === normalizeBrandName(supplied.name));
+    if (index < 0) merged.push(supplied);
+  }
+  return merged.map(normalizeKnownBrandDescription);
+}
+
+function mergeSuppliedProducts(existing: Product[]): Product[] {
+  const merged = [...existing];
+  for (const supplied of suppliedProducts) {
+    const index = merged.findIndex((product) => product.code?.trim() === supplied.code);
+    if (index < 0) {
+      merged.push(supplied);
+    } else {
+      merged[index] = { ...merged[index], ...supplied, id: merged[index].id, image: merged[index].image ?? supplied.image };
+    }
+  }
+  return merged;
 }
 
 function ProductDescription({ text, className }: { text: string; className: string }) {
@@ -551,8 +574,8 @@ export default function App() {
   };
   
   // Data States
-  const [brands, setBrands] = useState<Brand[]>(() => loadStoredArray('vistalab.brands', initialBrands).map(normalizeKnownBrandDescription));
-  const [products, setProducts] = useState<Product[]>(() => loadStoredArray('vistalab.products', initialProducts));
+  const [brands, setBrands] = useState<Brand[]>(() => mergeSuppliedBrands(loadStoredArray('vistalab.brands', initialBrands)));
+  const [products, setProducts] = useState<Product[]>(() => mergeSuppliedProducts(loadStoredArray('vistalab.products', initialProducts)));
   const [productsDatabaseReady, setProductsDatabaseReady] = useState(!supabaseClient);
   const [productsDatabaseError, setProductsDatabaseError] = useState('');
   const [productsRetry, setProductsRetry] = useState(0);
@@ -594,7 +617,7 @@ export default function App() {
       try { productCatalogWasInitialized = window.localStorage.getItem(productCatalogInitializedKey) === 'true'; } catch { /* Local storage may be disabled. */ }
       if (remoteProducts.length || productCatalogWasInitialized) {
         productBaseline.current = new Map(remoteProducts.map((product) => [product.id, JSON.stringify(product)]));
-        setProducts(remoteProducts);
+        setProducts(mergeSuppliedProducts(remoteProducts));
       } else {
         // The first admin who visits after setup imports this browser's existing catalog.
         productBaseline.current = new Map();
@@ -761,7 +784,7 @@ export default function App() {
       if (cancelled) return;
       if (data) {
         siteContentBaseline.current = JSON.stringify(data);
-        setBrands(data.brands.map(normalizeKnownBrandDescription));
+        setBrands(mergeSuppliedBrands(data.brands));
         setNews(data.news);
         setSettings((current) => ({ ...current, ...data.settings }));
       } else {
