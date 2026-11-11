@@ -1116,7 +1116,7 @@ export default function App() {
       lang={lang === 'KH' ? 'km' : 'en'}
       aria-busy={languageLoading}
       className="min-h-screen w-full min-w-0 bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-green-900 selection:text-white"
-      style={lang === 'KH' ? { fontFamily: "'Kantumruy Pro', 'Noto Sans Khmer', sans-serif", fontSynthesis: 'none' } : undefined}
+      style={lang === 'KH' ? { fontFamily: "'Noto Sans Khmer', 'Kantumruy Pro', sans-serif", fontSynthesis: 'none' } : undefined}
     >
       {languageLoading && (
         <div className="language-loading-overlay" role="status" aria-live="polite">
