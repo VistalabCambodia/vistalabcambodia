@@ -574,7 +574,7 @@ export default function App() {
   };
   
   // Data States
-  const [brands, setBrands] = useState<Brand[]>(() => mergeSuppliedBrands(loadStoredArray('vistalab.brands', initialBrands)));
+  const [brands, setBrands] = useState<Brand[]>(() => mergeSuppliedBrands(loadStoredArray('vistalab.brands', initialBrands) as Brand[]));
   const [products, setProducts] = useState<Product[]>(() => mergeSuppliedProducts(loadStoredArray('vistalab.products', initialProducts)));
   const [productsDatabaseReady, setProductsDatabaseReady] = useState(!supabaseClient);
   const [productsDatabaseError, setProductsDatabaseError] = useState('');
