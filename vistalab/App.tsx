@@ -367,7 +367,6 @@ export default function App() {
   const [dataHealthError, setDataHealthError] = useState('');
   const [backupLoading, setBackupLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeBrandFilter, setActiveBrandFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1238,7 +1237,7 @@ export default function App() {
           {/* Mobile menu trigger */}
           <div className="ml-2 flex shrink-0 items-center space-x-1 lg:hidden sm:space-x-2">
             <button
-              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (mobileMenuOpen) setMobileMoreOpen(false); }}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg focus:outline-none"
               aria-label={mobileMenuOpen ? tx('Close navigation menu', 'បិទម៉ឺនុយ') : tx('Open navigation menu', 'បើកម៉ឺនុយ')}
               aria-expanded={mobileMenuOpen}
@@ -1260,11 +1259,15 @@ export default function App() {
                 { id: 'products', label: t.navProducts, icon: Package },
                 { id: 'brands', label: t.navBrands, icon: Tags },
                 { id: 'about', label: tx('About & Distribution', 'អំពីយើង និងបណ្តាញចែកចាយ'), icon: Info },
-                { id: 'contact', label: t.navContact, icon: Phone }
+                { id: 'contact', label: t.navContact, icon: Phone },
+                { id: 'home', label: t.navHome, icon: Home },
+                { id: 'partner', label: t.navPartner, icon: Handshake },
+                { id: 'seller', label: t.navSeller, icon: Store },
+                { id: 'news', label: t.navNews, icon: Newspaper }
               ].map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); setMobileMenuOpen(false); setMobileMoreOpen(false); }}
+                  onClick={() => { if (link.id === 'products') setActiveBrandFilter(null); setCurrentView(link.id); setMobileMenuOpen(false); }}
                   className={`flex min-h-11 min-w-0 items-center gap-2 text-left px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors ${currentView === link.id ? 'bg-[#267A3B] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
                   <link.icon className={`h-4 w-4 shrink-0 ${currentView === link.id ? 'text-white' : 'text-slate-400'}`} aria-hidden="true" />
@@ -1272,17 +1275,6 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <button type="button" aria-expanded={mobileMoreOpen} onClick={() => setMobileMoreOpen((open) => !open)} className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
-              <span>{mobileMoreOpen ? tx('Fewer pages', 'បិទទំព័របន្ថែម') : tx('More pages', 'ទំព័របន្ថែម')}</span><ChevronDown className={`h-4 w-4 transition-transform ${mobileMoreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-            </button>
-            {mobileMoreOpen && <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'home', label: t.navHome, icon: Home },
-                { id: 'partner', label: t.navPartner, icon: Handshake },
-                { id: 'seller', label: t.navSeller, icon: Store },
-                { id: 'news', label: t.navNews, icon: Newspaper }
-              ].map((link) => <button key={link.id} type="button" onClick={() => { setCurrentView(link.id); setMobileMenuOpen(false); setMobileMoreOpen(false); }} className="flex min-h-10 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-green-50"><link.icon className="h-4 w-4 text-slate-500" aria-hidden="true" />{link.label}</button>)}
-            </div>}
             <div className="pt-2 flex flex-col space-y-2">
               <button
                 onClick={() => openInquiry('', '', 'General')}
