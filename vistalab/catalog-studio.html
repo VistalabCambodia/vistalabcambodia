@@ -97,7 +97,8 @@ body.staff-viewer #jpg{background:#16845b}
  <div id="fmt">
   <button data-c="bold"><b>B</b></button><button data-c="italic"><i>I</i></button><button data-c="underline"><u>U</u></button>
   <input type="color" id="fc" value="#000000" title="Text color">
-  <select id="fs"><option value="">Size</option><option value="2">Small</option><option value="3">Normal</option><option value="5">Large</option><option value="6">X-Large</option><option value="7">XX-Large</option></select>
+  <select id="ff" title="Font family"><option value="">Font</option><option>Arial</option><option>Arial Narrow</option><option>Calibri</option><option>Georgia</option><option>Impact</option><option>Khmer OS</option><option>Noto Sans Khmer</option><option>Noto Serif Khmer</option><option>Tahoma</option><option>Times New Roman</option><option>Verdana</option></select>
+  <input id="fs" type="number" min="6" max="96" placeholder="Size px" title="Font size in pixels" style="width:74px">
   <button data-c="justifyLeft">⬅</button><button data-c="justifyCenter">⬌</button><button data-c="justifyRight">➡</button><button data-c="removeFormat">Clear</button>
  </div>
  <div class="hint" style="margin-top:-4px">Click in any text box (title, description, table heading), select words, then use this bar. Press Enter for a new line.</div>
@@ -190,10 +191,11 @@ function rtSet(el){const h=el.innerHTML,d=el.dataset,p=P();
 document.addEventListener("input",e=>{const el=e.target.closest&&e.target.closest("[data-rt]");if(el)rtSet(el)});
 document.addEventListener("paste",e=>{const el=e.target.closest&&e.target.closest("[data-rt]");if(!el)return;e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"))});
 function cmd(c,v){if(!LE)return toast("Click inside a text box and select some text first");LE.focus();const s=getSelection();s.removeAllRanges();s.addRange(LR);document.execCommand("styleWithCSS",false,true);document.execCommand(c,false,v);rtSet(LE)}
+function formatSelection(property,value){if(!LE||!LR)return toast("Click in the text and select some words first");LE.focus();const s=getSelection();s.removeAllRanges();s.addRange(LR);const range=s.getRangeAt(0);if(range.collapsed)return toast("Select some text first");const span=document.createElement("span");span.style[property]=value;span.append(range.extractContents());range.insertNode(span);range.selectNodeContents(span);s.removeAllRanges();s.addRange(range);LR=range.cloneRange();rtSet(LE)}
 document.execCommand("defaultParagraphSeparator",false,"br");
 $("#fmt").onmousedown=e=>{if(e.target.tagName=="BUTTON")e.preventDefault()};
 $("#fmt").onclick=e=>{const b=e.target.closest("[data-c]");if(b)cmd(b.dataset.c)};
-$("#fc").oninput=e=>cmd("foreColor",e.target.value);$("#fs").onchange=e=>{if(e.target.value)cmd("fontSize",e.target.value);e.target.value=""};
+$("#fc").oninput=e=>cmd("foreColor",e.target.value);$("#ff").onchange=e=>{if(e.target.value)formatSelection("fontFamily",e.target.value);e.target.value=""};$("#fs").onchange=e=>{if(e.target.value)formatSelection("fontSize",`${Math.max(6,Math.min(96,+e.target.value))}px`);e.target.value=""};
 /* ---------- editor ---------- */
 function pl(){$("#pl").innerHTML=D.pages.map((p,i)=>`<button class="${i==D.cur?"on":""}" data-p="${i}">${i+1}. ${esc((tx(p.english)||tx(p.khmer)||"New page").slice(0,22))}</button>`).join("")}
 const cted=(t,ti)=>{const s=t.show||{pp:1,prov:1,fb:1};return `<div class="tbx" style="background:#fffaf0"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Table ${ti+1} — Discount / custom</b><button class="r x" data-a="xt" data-t="${ti}">Delete table</button></div>
